@@ -11,15 +11,19 @@ use Flash;
 use App\Http\Controllers\AppBaseController;
 use Response;
 use Illuminate\Support\Facades\Crypt;
+use App\Repositories\RoleHasPermissionRepository;
 
 class RoleController extends AppBaseController
 {
     /** @var RoleRepository $roleRepository*/
     private $roleRepository;
+    private $roleHasPermissionRepository;
 
-    public function __construct(RoleRepository $roleRepo)
+
+    public function __construct(RoleRepository $roleRepo, RoleHasPermissionRepository $roleHasPermissionRepo)
     {
         $this->roleRepository = $roleRepo;
+        $this->roleHasPermissionRepository = $roleHasPermissionRepo;
     }
 
     /**
@@ -55,7 +59,18 @@ class RoleController extends AppBaseController
     {
         $input = $request->all();
 
+        $permission_id = $input["permission_id"] ?? "";
+        
+        unset($input["permission_id"]);
+
         $role = $this->roleRepository->create($input);
+
+        $rolePermission = [
+            "role_id" => $role["id"],
+            "permission_id" => $permission_id
+        ];
+        
+        $roleHasPermission = $this->roleHasPermissionRepository->create($rolePermission);
 
         Flash::success('Role saved successfully.');
 
@@ -80,6 +95,11 @@ class RoleController extends AppBaseController
             return redirect(route('roles.index'));
         }
 
+        $roleHasPermission = $this->roleHasPermissionRepository->where('role_id', $id)->first();  // Use Eloquent 'where' and 'first'
+
+        $role->permission_name = $roleHasPermission->permission->name ?? "";
+
+
         return view('roles.show')->with('role', $role);
     }
 
@@ -100,6 +120,10 @@ class RoleController extends AppBaseController
 
             return redirect(route('roles.index'));
         }
+        
+        $roleHasPermission = $this->roleHasPermissionRepository->where('role_id', $id)->first();  // Use Eloquent 'where' and 'first'
+
+        $role->permission_id = $roleHasPermission->permission_id ?? "";
 
         return view('roles.edit')->with('role', $role);
     }
@@ -124,6 +148,26 @@ class RoleController extends AppBaseController
         }
 
         $role = $this->roleRepository->update($request->all(), $id);
+
+        $roleHasPermission = $this->roleHasPermissionRepository->where('role_id', $id)->first();  // Use Eloquent 'where' and 'first'
+
+        if($roleHasPermission)
+        {
+            $rolePermission = [
+                "permission_id" => $request["permission_id"]
+            ];
+
+            $this->roleHasPermissionRepository->update($rolePermission, $roleHasPermission->id);
+        }
+        else
+        {
+            $rolePermission = [
+                "model_id" => $user["id"],
+                "role_id" => $request["role_id"]
+            ];
+    
+            $roleHasPermission = $this->roleHasPermissionRepository->create($rolePermission);
+        }
 
         Flash::success('Role updated successfully.');
 

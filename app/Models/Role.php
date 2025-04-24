@@ -53,7 +53,8 @@ class Role extends Model
     public static $rules = [
         'name' => 'required|string|max:255',
         'created_at' => 'nullable',
-        'updated_at' => 'nullable'
+        'updated_at' => 'nullable',
+        'permission_id' => 'required'
     ];
 
     protected $attributes = [

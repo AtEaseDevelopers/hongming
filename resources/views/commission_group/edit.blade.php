@@ -3,7 +3,7 @@
 @section('content')
     <ol class="breadcrumb">
           <li class="breadcrumb-item">
-             <a href="{!! route('customer_group.index') !!}">Customer Group</a>
+             <a href="{!! route('commission_group.index') !!}">Commission</a>
           </li>
           <li class="breadcrumb-item active">Edit</li>
         </ol>
@@ -15,12 +15,12 @@
                       <div class="card">
                           <div class="card-header">
                               <i class="fa fa-edit fa-lg"></i>
-                              <strong>Edit Customer Group</strong>
+                              <strong>Edit Commission</strong>
                           </div>
                           <div class="card-body">
-                              {!! Form::model($code, ['route' => ['customer_group.update', Crypt::encrypt($code->id)], 'method' => 'patch']) !!}
+                              {!! Form::model($code, ['route' => ['commission_group.update', Crypt::encrypt($code->id)], 'method' => 'patch']) !!}
 
-                              @include('customer_group.fields')
+                              @include('commission_group.fields')
 
                               {!! Form::close() !!}
                             </div>

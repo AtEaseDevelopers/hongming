@@ -4,6 +4,11 @@
     <p>{{ $role->name }}</p>
 </div>
 
+<div class="form-group">
+    {!! Form::label('permission_id', 'Permission:') !!}
+    <p>{{ $role->permission_name }}</p>
+</div>
+
 @push('scripts')
     <script>
         $(document).keyup(function(e) {

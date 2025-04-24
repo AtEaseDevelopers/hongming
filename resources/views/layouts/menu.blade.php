@@ -345,6 +345,11 @@
                     <span>Customer Group</span>
                 </a>
             </li>
+            <li class="nav-item {{ Request::is('codes*') ? 'active open' : '' }}">
+                <a class="nav-link {{ Request::is('codes*') ? 'active' : '' }}" href="{{ route('commission_group.index') }}">
+                    <span>Commission</span>
+                </a>
+            </li>
         </ul>
     @endcan
 
@@ -370,13 +375,13 @@
     @endcan
 
     @can('userrole')
-        <ul class="nav-dropdown-items">
+        <!--<ul class="nav-dropdown-items">
             <li class="nav-item {{ Request::is('userHasRoles*') ? 'active open' : '' }}">
                 <a class="nav-link {{ Request::is('userHasRoles*') ? 'active' : '' }}" href="{{ route('userHasRoles.index') }}">
                     <span>User Roles</span>
                 </a>
             </li>
-        </ul>
+        </ul>-->
     @endcan
 
     @can('role')
@@ -390,23 +395,23 @@
     @endcan
 
     @can('rolepermission')
-        <ul class="nav-dropdown-items">
+        <!--<ul class="nav-dropdown-items">
             <li class="nav-item {{ Request::is('roleHasPermissions*') ? 'active open' : '' }}">
                 <a class="nav-link {{ Request::is('roleHasPermissions*') ? 'active' : '' }}" href="{{ route('roleHasPermissions.index') }}">
                     <span>Role Permissions</span>
                 </a>
             </li>
-        </ul>
+        </ul>-->
     @endcan
 
     @if(env('APP_ENV') == 'local')
-        <ul class="nav-dropdown-items">
+        <!--<ul class="nav-dropdown-items">
             <li class="nav-item {{ Request::is('permissions*') ? 'active open' : '' }}">
                 <a class="nav-link {{ Request::is('permissions*') ? 'active' : '' }}" href="{{ route('permissions.index') }}">
                     <span>Permissions</span>
                 </a>
             </li>
-        </ul>
+        </ul>-->
     @endif
 
 </li>

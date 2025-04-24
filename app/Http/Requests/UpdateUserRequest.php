@@ -29,7 +29,8 @@ class UpdateUserRequest extends FormRequest
         $rules = [
           'name'     => 'required',
           'email'    => 'required|email|unique:users,email,'.Crypt::decrypt($id),
-          'password' => 'confirmed'
+          'password' => 'confirmed',
+          'role_id'  => 'required'
         ];
         
         return $rules;

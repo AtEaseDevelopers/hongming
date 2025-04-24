@@ -398,7 +398,7 @@ class ViewServiceProvider extends ServiceProvider
             $userItems = User::pluck('name','id')->toArray();
             $view->with('userItems', $userItems);
         });
-        View::composer(['user_has_roles.fields'], function ($view) {
+        View::composer(['users.fields'], function ($view) {
             $roleItems = Role::pluck('name','id')->toArray();
             $view->with('roleItems', $roleItems);
         });
@@ -407,7 +407,7 @@ class ViewServiceProvider extends ServiceProvider
             $roleItems = Role::pluck('name','id')->toArray();
             $view->with('roleItems', $roleItems);
         });
-        View::composer(['role_has_permissions.fields'], function ($view) {
+        View::composer(['roles.fields'], function ($view) {
             $permissionItems = Permission::pluck('name','id')->toArray();
             $view->with('permissionItems', $permissionItems);
         });

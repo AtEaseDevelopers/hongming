@@ -10,6 +10,12 @@
     <p>{!! $user->email !!}</p>
 </div>
 
+<!-- Role Id Field -->
+<div class="form-group">
+    {!! Form::label('role_id', 'Role:') !!}
+    <p>{!! $user->role_name !!}</p>
+</div>
+
 <!-- Created At Field -->
 <div class="form-group">
     {!! Form::label('created_at', 'Created At:') !!}

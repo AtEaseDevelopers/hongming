@@ -38,4 +38,9 @@ class RoleHasPermissionRepository extends BaseRepository
     {
         return RoleHasPermission::class;
     }
+
+    public function where($field, $value)
+    {
+        return RoleHasPermission::where($field, $value);
+    }
 }

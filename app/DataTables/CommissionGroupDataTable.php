@@ -6,7 +6,7 @@ use App\Models\Code;
 use Yajra\DataTables\Services\DataTable;
 use Yajra\DataTables\EloquentDataTable;
 
-class CustomerGroupDataTable extends DataTable
+class CommissionGroupDataTable extends DataTable
 {
     /**
      * Build DataTable class.
@@ -18,7 +18,7 @@ class CustomerGroupDataTable extends DataTable
     {
         $dataTable = new EloquentDataTable($query);
 
-        return $dataTable->addColumn('action', 'customer_group.datatables_actions');
+        return $dataTable->addColumn('action', 'commission_group.datatables_actions');
     }
 
     /**
@@ -29,7 +29,7 @@ class CustomerGroupDataTable extends DataTable
      */
     public function query(Code $model)
     {
-        return $model->newQuery()->where("code","=","customer_group");
+        return $model->newQuery()->where("code","LIKE","%commission%");
     }
 
     /**
@@ -61,8 +61,16 @@ class CustomerGroupDataTable extends DataTable
                     ['extend' => 'pageLength','className' => 'btn btn-default btn-sm no-corner',],
                 ],
                 'columnDefs' => [
-                    'targets' => -1,
-                    'visible' => false
+                    
+                    [
+                        'targets' => 1,
+                        'render' => 'function(data, type, row){
+                                var product_type = {
+                                    0: \'Ice\'
+                                };
+                                return product_type[data] || \'Unknown\';
+                            }'
+                        ],
                 ],
                 'initComplete' => 'function(){
                     var columns = this.api().init().columns;
@@ -94,11 +102,16 @@ class CustomerGroupDataTable extends DataTable
     protected function getColumns()
     {
         return [
-            //'code',
-            'description'=> new \Yajra\DataTables\Html\Column(['title' => 'Customer Group',
+            'code'=> new \Yajra\DataTables\Html\Column(['title' => 'Commission',
+            'data' => 'code',
+            'name' => 'code']),
+
+            'description'=> new \Yajra\DataTables\Html\Column(['title' => 'Product Type',
             'data' => 'description',
             'name' => 'description']),
-            //'value',
+            
+            'value'
+
             //'sequence',
             // 'STR_UDF1'=> new \Yajra\DataTables\Html\Column(['title' => 'String UDF1',
             // 'data' => 'STR_UDF1',
@@ -128,6 +141,6 @@ class CustomerGroupDataTable extends DataTable
      */
     protected function filename()
     {
-        return 'customer_group_datatable_' . time();
+        return 'commission_group_datatable_' . time();
     }
 }

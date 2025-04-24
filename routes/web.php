@@ -439,6 +439,9 @@ Route::group(['middleware' => ['auth']], function() {
     Route::group(['middleware' => ['permission:code']], function() {
         Route::resource('customer_group', App\Http\Controllers\CustomerGroupController::class);
     });
+    Route::group(['middleware' => ['permission:code']], function() {
+        Route::resource('commission_group', App\Http\Controllers\CommissionGroupController::class);
+    });
     Route::group(['middleware' => ['permission:user']], function() {
         Route::resource('users', UserController::class);
     });

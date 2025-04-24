@@ -7,6 +7,7 @@ use App\Http\Requests;
 use App\Http\Requests\CreateUserRequest;
 use App\Http\Requests\UpdateUserRequest;
 use App\Repositories\UserRepository;
+use App\Repositories\UserHasRoleRepository;
 use Flash;
 use App\Http\Controllers\AppBaseController;
 use Response;
@@ -17,10 +18,12 @@ class UserController extends AppBaseController
 {
     /** @var UserRepository $userRepository*/
     private $userRepository;
+    private $userHasRoleRepository;
 
-    public function __construct(UserRepository $userRepo)
+    public function __construct(UserRepository $userRepo, UserHasRoleRepository $userHasRoleRepo)
     {
         $this->userRepository = $userRepo;
+        $this->userHasRoleRepository = $userHasRoleRepo;
     }
 
     /**
@@ -70,7 +73,15 @@ class UserController extends AppBaseController
         $input = $request->all();
 
         $input['password'] = Hash::make($input['password']);
-        $user = $this->userRepository->create($input);
+        $user = $this->userRepository->create($input);  
+
+
+        $userRole = [
+            "model_id" => $user["id"],
+            "role_id" => $input["role_id"]
+        ];
+
+        $userHasRole = $this->userHasRoleRepository->create($userRole);
 
         Flash::success('User saved successfully.');
 
@@ -94,6 +105,10 @@ class UserController extends AppBaseController
 
             return redirect(route('users.index'));
         }
+        
+        $userHasRole = $this->userHasRoleRepository->where('model_id', $id)->first();  // Use Eloquent 'where' and 'first'
+
+        $user->role_name = $userHasRole->role->name ?? "";
 
         return view('users.show')->with('user', $user);
     }
@@ -115,6 +130,10 @@ class UserController extends AppBaseController
 
             return redirect(route('users.index'));
         }
+        
+        $userHasRole = $this->userHasRoleRepository->where('model_id', $id)->first();  // Use Eloquent 'where' and 'first'
+
+        $user->role_id = $userHasRole->role_id ?? "";
 
         return view('users.edit')->with('user', $user);
     }
@@ -141,6 +160,28 @@ class UserController extends AppBaseController
 
         $input['password'] = Hash::make($input['password']);
         $user = $this->userRepository->update($input, $id);
+        
+
+        $userHasRole = $this->userHasRoleRepository->where('model_id', $id)->first();  // Use Eloquent 'where' and 'first'
+
+        if($userHasRole)
+        {
+            $userRole = [
+                "role_id" => $input["role_id"]
+            ];
+
+            $this->userHasRoleRepository->update($userRole, $userHasRole->id);
+        }
+        else
+        {
+            $userRole = [
+                "model_id" => $user["id"],
+                "role_id" => $input["role_id"]
+            ];
+    
+            $userHasRole = $this->userHasRoleRepository->create($userRole);
+        }
+       
 
         Flash::success('User updated successfully.');
 

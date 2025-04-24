@@ -39,4 +39,10 @@ class UserHasRoleRepository extends BaseRepository
     {
         return UserHasRole::class;
     }
+
+    public function where($field, $value)
+    {
+        return UserHasRole::where($field, $value);
+    }
+    
 }

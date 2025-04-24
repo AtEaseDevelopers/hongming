@@ -29,7 +29,7 @@ class CodeDataTable extends DataTable
      */
     public function query(Code $model)
     {
-        return $model->newQuery()->where("code","!=","customer_group");
+        return $model->newQuery()->where("code","!=","customer_group")->where("code","NOT LIKE","%commission%");
     }
 
     /**
