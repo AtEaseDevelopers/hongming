@@ -61,15 +61,15 @@ class KelindanController extends AppBaseController
     public function store(CreateKelindanRequest $request)
     {
         $input = $request->all();
-        if($input['firstvaccine'] != ''){
-            $input['firstvaccine'] = date_create($input['firstvaccine']);
-        }
-        if($input['secondvaccine'] != ''){
-            $input['secondvaccine'] = date_create($input['secondvaccine']);
-        }
-        if($input['permitdate'] != ''){
-            $input['permitdate'] = date_create($input['permitdate']);
-        }
+        // if($input['firstvaccine'] != ''){
+        //     $input['firstvaccine'] = date_create($input['firstvaccine']);
+        // }
+        // if($input['secondvaccine'] != ''){
+        //     $input['secondvaccine'] = date_create($input['secondvaccine']);
+        // }
+        // if($input['permitdate'] != ''){
+        //     $input['permitdate'] = date_create($input['permitdate']);
+        // }
         $kelindan = $this->kelindanRepository->create($input);
 
         Flash::success($input['name'].__('kelindans.saved_successfully'));

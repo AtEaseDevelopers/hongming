@@ -67,12 +67,12 @@ class DriverController extends AppBaseController
     public function store(CreateDriverRequest $request)
     {
         $input = $request->all();
-        if($input['firstvaccine'] != ''){
-            $input['firstvaccine'] = date_create($input['firstvaccine']);
-        }
-        if($input['secondvaccine'] != ''){
-            $input['secondvaccine'] = date_create($input['secondvaccine']);
-        }
+        // if($input['firstvaccine'] != ''){
+        //     $input['firstvaccine'] = date_create($input['firstvaccine']);
+        // }
+        // if($input['secondvaccine'] != ''){
+        //     $input['secondvaccine'] = date_create($input['secondvaccine']);
+        // }
         $driver = $this->driverRepository->create($input);
 
         Flash::success($input['name'].__('drivers.saved_successfully'));
@@ -114,7 +114,7 @@ class DriverController extends AppBaseController
         $id = Crypt::decrypt($id);
         $driver = $this->driverRepository->find($id);
 
-        if (empty($driver)) {
+    if (empty($driver)) {
             Flash::error(__('drivers.driver_not_found'));
 
             return redirect(route('drivers.index'));

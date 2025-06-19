@@ -99,13 +99,13 @@ class InvoiceController extends AppBaseController
                     $task->invoice_id = $invoice->id;
                     $task->status = 0;
                     $task->save();
-                    Flash::success(__('invoices.invoice_saved_and_assigned_success'));
+                    Flash::success('Invoice saved and assigned to driver successfully.');
                 }
             }else{
-                Flash::success(__('invoices.invoice_saved_successfully'));
+                Flash::success('Invoice saved successfully.');
             }
         }else{
-            Flash::success(__('invoices.invoice_saved_successfully'));
+            Flash::success('Invoice saved successfully.');
         }
 
         if($input['method'] == 1){
@@ -129,7 +129,7 @@ class InvoiceController extends AppBaseController
         $invoice = $this->invoiceRepository->find($id);
 
         if (empty($invoice)) {
-            Flash::error(__('invoices.invoice_not_found'));
+            Flash::error('Invoice not found');
 
             return redirect(route('invoices.index'));
         }
@@ -152,7 +152,7 @@ class InvoiceController extends AppBaseController
         $invoice = $this->invoiceRepository->find($id);
 
         if (empty($invoice)) {
-            Flash::error(__('invoices.invoice_not_found'));
+            Flash::error('Invoice not found');
 
             return redirect(route('invoices.index'));
         }
@@ -174,7 +174,7 @@ class InvoiceController extends AppBaseController
         $invoice = $this->invoiceRepository->find($id);
 
         if (empty($invoice)) {
-            Flash::error(__('invoices.invoice_not_found'));
+            Flash::error('Invoice not found');
 
             return redirect(route('invoices.index'));
         }
@@ -232,7 +232,35 @@ class InvoiceController extends AppBaseController
                 }
             }
         }
+        else
+        {
+            if($input['paymentterm'] == 1)
+            {
+                $totalAmount = InvoiceDetail::where('invoice_id', $id)->sum('totalprice');
 
+                $invoicePayment = InvoicePayment::where('invoice_id', $id)->first();
+
+                if(!$invoicePayment)
+                {
+                    $invoicepayment_new = New InvoicePayment();
+                    $invoicepayment_new->invoice_id = $id;
+                    $invoicepayment_new->type = 1;
+                    $invoicepayment_new->customer_id = $invoice->customer_id;
+                    $invoicepayment_new->amount = $totalAmount;
+                    $invoicepayment_new->status = $invoice->status;
+                    $invoicepayment_new->driver_id = $invoice->driver_id;
+                    $invoicepayment_new->approve_by = Auth::user()->email;
+                    $invoicepayment_new->approve_at = date('Y-m-d H:i:s');
+                    $invoicepayment_new->save();
+                }
+                else
+                {
+                    $invoicePayment->status = 1;
+                    $invoicePayment->amount = $totalAmount;
+                    $invoicePayment->save();
+                }
+            }
+        }
 
 
         if($input['driver_id'] != ''){
@@ -266,11 +294,12 @@ class InvoiceController extends AppBaseController
                                 $task->invoice_id = $invoice->id;
                                 $task->status = 0;
                                 $task->save();
-                                Flash::success(__('invoices.invoice_updated_and_assigned_success'));
+                                Flash::success('Invoice updated and assigned to another driver successfully.');
                             }
                         }else{
-                                Flash::success(__('invoices.invoice_updated_successfully'));
+                            Flash::success('Invoice updated successfully.');
                         }
+
                     }
                     if($task_status == 9){
                         //task is cancelled
@@ -293,18 +322,18 @@ class InvoiceController extends AppBaseController
                                 $task->invoice_id = $invoice->id;
                                 $task->status = 0;
                                 $task->save();
-                                Flash::success(__('invoices.invoice_updated_and_assigned_success'));
+                                Flash::success('Invoice updated and assigned to another driver successfully.');
                             }
                         }else{
-                            Flash::success(__('invoices.invoice_updated_successfully'));
+                            Flash::success('Invoice updated successfully.');
                         }
 
                     }
                     if($task_status == 1){
-                        Flash::success(__('invoices.invoice_updated_successfully'));
+                        Flash::success('Invoice updated successfully.');
                     }
                     if($task_status == 8){
-                        Flash::success(__('invoices.invoice_updated_successfully'));
+                        Flash::success('Invoice updated successfully.');
                     }
                 }
             }else{
@@ -328,14 +357,14 @@ class InvoiceController extends AppBaseController
                         $task->invoice_id = $invoice->id;
                         $task->status = 0;
                         $task->save();
-                        Flash::success(__('invoices.invoice_updated_and_assigned_success'));
+                        Flash::success('Invoice updated and assigned to driver successfully.');
                     }
                 }else{
-                    Flash::success(__('invoices.invoice_updated_successfully'));
+                    Flash::success('Invoice updated successfully.');
                 }
             }
         }else{
-            Flash::success(__('invoices.invoice_updated_successfully'));
+            Flash::success('Invoice updated successfully.');
         }
 
         if($input['method'] == 1){
@@ -358,7 +387,7 @@ class InvoiceController extends AppBaseController
         $invoice = $this->invoiceRepository->find($id);
 
         if (empty($invoice)) {
-            Flash::error(__('invoices.invoice_not_found'));
+            Flash::error('Invoice not found');
 
             return redirect(route('invoices.index'));
         }
@@ -366,7 +395,8 @@ class InvoiceController extends AppBaseController
         $task = Task::where('invoice_id',$invoice->id)->first();
         if(!empty($task)){
             if ($task->status != 0) {
-                Flash::error(__('invoices.invoice_had_been_processed_by_driver'));
+                Flash::error('Invoice had been processed by driver');
+
                 return redirect(route('invoices.index'));
             }
 
@@ -375,7 +405,8 @@ class InvoiceController extends AppBaseController
 
         $this->invoiceRepository->delete($id);
         $invoicedetail = Invoicedetail::where('invoice_id',$invoice->id)->delete();
-        Flash::success(__('invoices.invoice_deleted_successfully'));
+
+        Flash::success('Invoice deleted successfully.');
 
         return redirect(route('invoices.index'));
     }
@@ -435,7 +466,7 @@ class InvoiceController extends AppBaseController
         $invoice = $this->invoiceRepository->find($id);
 
         if (empty($invoice)) {
-            Flash::error(__('invoices.invoice_not_found'));
+            Flash::error('Invoice not found');
 
             return redirect(route('invoices.index'));
         }
@@ -445,7 +476,6 @@ class InvoiceController extends AppBaseController
 
     public function adddetail($id , Request $request)
     {
-
         $id = Crypt::decrypt($id);
 
         $input = $request->all();
@@ -453,7 +483,7 @@ class InvoiceController extends AppBaseController
         $driver = $this->invoiceRepository->find($id);
 
         if (empty($driver)) {
-            Flash::error(__('invoices.invoice_not_found'));
+            Flash::error('Invoice not found');
 
             return redirect(route('invoices.index'));
         }
@@ -487,6 +517,38 @@ class InvoiceController extends AppBaseController
         $invoicedetail->totalprice = $input['quantity'] * $input['price'];
         $invoicedetail->remark = $input['remark'];
         $invoicedetail->save();
+        
+
+        if($invoice->paymentterm == 1)
+        {
+            // Check invoice payment if cash 
+            $id = $input['invoice_id'];
+            $invoicePayment = InvoicePayment::where('invoice_id', $id)->first();
+            
+            $totalAmount = InvoiceDetail::where('invoice_id', $id)->sum('totalprice');
+
+            if(!$invoicePayment)
+            {
+                $invoicepayment_new = New InvoicePayment();
+                $invoicepayment_new->invoice_id = $id;
+                $invoicepayment_new->type = 1;
+                $invoicepayment_new->customer_id = $invoice->customer_id;
+                $invoicepayment_new->amount = $totalAmount;
+                $invoicepayment_new->status = $invoice->status;
+                $invoicepayment_new->driver_id = $invoice->driver_id;
+                $invoicepayment_new->approve_by = Auth::user()->email;
+                $invoicepayment_new->approve_at = date('Y-m-d H:i:s');
+                $invoicepayment_new->save();
+            }
+            else
+            {
+                $invoicePayment->status = 1;
+                $invoicePayment->amount = $totalAmount;
+                $invoicePayment->save();
+            }
+        }
+
+
         
         // $xero_has_err = false;
         // try {
@@ -541,9 +603,9 @@ class InvoiceController extends AppBaseController
         // }
 
         // if (!$xero_has_err) {
+            Flash::success('Invoice Detail saved successfully.');
+        // }
         
-            Flash::success(__('invoices.invoice_detail_saved_successfully'));
-        //}
         Session::forget('invoice_detail_data');
     }
 
@@ -554,13 +616,14 @@ class InvoiceController extends AppBaseController
         $invoicedetail = InvoiceDetail::where('id',$id)->first();
 
         if (empty($invoicedetail)) {
-            Flash::error(__('invoices.invoice_detail_not_found'));
+            Flash::error('Invoice Detail not found');
 
             return redirect()->back();
         }
 
         $invoicedetail->delete($id);
-        Flash::success(__('invoices.invoice_detail_deleted_successfully'));
+
+        Flash::success('Invoice Detail deleted successfully.');
 
         return redirect(route('invoices.show',encrypt($invoicedetail->invoice_id)));
     }
@@ -689,14 +752,12 @@ class InvoiceController extends AppBaseController
                 ]);
             }
             
-            Flash::success(__('invoices.invoice_sync_xero_success'));
-
+            Flash::success('Invoices synced to Xero.');
             return redirect(route('invoices.index'));
         } catch (\Throwable $th) {
             report($th);
 
-            Flash::error(__('invoices.something_went_wrong'));
-
+            Flash::error('Something went wrong. Please contact administator.');
             return redirect(route('invoices.index'));
         }
     }

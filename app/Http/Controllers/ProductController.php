@@ -177,12 +177,12 @@ class ProductController extends AppBaseController
             return redirect(route('products.index'));
         }
 
-        $Invoice = Invoice::where('product_id',$id)->get()->toArray();
-        if(count($Invoice)>0){
-            Flash::error('Unable to delete '.$product->name.', '.$product->name.' is being used in Invoice');
+        // $Invoice = Invoice::where('product_id',$id)->get()->toArray();
+        // if(count($Invoice)>0){
+        //     Flash::error('Unable to delete '.$product->name.', '.$product->name.' is being used in Invoice');
 
-            return redirect(route('products.index'));
-        }
+        //     return redirect(route('products.index'));
+        // }
 
         $SpecialPrice = SpecialPrice::where('product_id',$id)->get()->toArray();
         if(count($SpecialPrice)>0){

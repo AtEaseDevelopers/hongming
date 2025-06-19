@@ -346,7 +346,49 @@ class InvoicePaymentController extends AppBaseController
         $min = 450;
         $each = 23;
 
-        $invoice->newcredit = round(DB::select('call ice_spGetCustomerCreditByDate("'.$invoice->updated_at.'",'.$invoice->customer_id.');')[0]->credit,2);
+        $creditQuery = "
+            SELECT 
+                (COALESCE(total_invoiced.totalprice, 0) - COALESCE(paymentsummary.amount, 0)) as credit
+            FROM 
+                customers
+            LEFT JOIN (
+                SELECT 
+                    customer_id, 
+                    SUM(invoice_details.totalprice) AS totalprice 
+                FROM 
+                    invoices 
+                    LEFT JOIN invoice_details ON invoices.id = invoice_details.invoice_id 
+                WHERE 
+                    invoices.status = 1
+                    AND invoices.updated_at <= ?
+                GROUP BY 
+                    customer_id
+            ) AS total_invoiced ON customers.id = total_invoiced.customer_id 
+            LEFT JOIN (
+                SELECT 
+                    customer_id, 
+                    SUM(COALESCE(amount, 0)) AS amount 
+                FROM 
+                    invoice_payments 
+                WHERE 
+                    status = 1
+                    AND updated_at <= ?
+                GROUP BY 
+                    customer_id
+            ) AS paymentsummary ON customers.id = paymentsummary.customer_id 
+            WHERE 
+                customers.id = ?
+            GROUP BY 
+                customers.id, total_invoiced.totalprice, paymentsummary.amount
+        ";
+
+        $creditResult = DB::select($creditQuery, [
+            $invoice->updated_at,
+            $invoice->updated_at,
+            $invoice->customer_id
+        ]);
+    
+        $invoice->newcredit = !empty($creditResult) ? round($creditResult[0]->credit, 2) : 0;
         $invoice->customer->groupcompany = DB::table('companies')
         ->where('companies.group_id',explode(',',$invoice->customer->group)[0])
         ->select('companies.*')

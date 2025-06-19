@@ -56,7 +56,9 @@ return [
         ],
 
     ],
-
+    'mime_types' => [
+        'json' => ['application/json', 'text/plain'],
+    ],
     /*
     |--------------------------------------------------------------------------
     | Symbolic Links

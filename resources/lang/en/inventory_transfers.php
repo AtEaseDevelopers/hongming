@@ -1,17 +1,17 @@
 <?php
 
 return [
-    'inventory_transfers' => 'Inventory Transfers',
+    'close' => 'Close',
+    'date' => 'Date',
     'from_driver' => 'From driver',
     'from_lorry' => 'From lorry',
-    'to_driver' => 'To driver',
-    'to_lorry' => 'To lorry',
+    'inventory_transfers' => 'Inventory Transfers',
     'product' => 'Product',
     'quantity' => 'Quantity',
-    'status' => 'Status',
     'remark' => 'Remark',
-    'select_a_date_range' => 'Select a date range',
-    'date' => 'Date',
     'search' => 'Search',
-    'close' => 'Close',
+    'select_a_date_range' => 'Select a date range',
+    'status' => 'Status',
+    'to_driver' => 'To driver',
+    'to_lorry' => 'To lorry',
 ];

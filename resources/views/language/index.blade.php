@@ -12,9 +12,10 @@
 
                 <div class="card-body">
                     <div class="row">
-                        <!-- Left Side - System Language Selection -->
+                        <!-- Left Side - System Language and Management -->
                         <div class="col-md-6">
-                            <div class="border p-3 rounded bg-light">
+                            <!-- System Language Selection -->
+                            <div class="border p-3 rounded bg-light mb-3">
                                 <h5 class="mb-3">{{ __('language_translation.system_language') }}</h5>
                                 <form method="POST" action="{{ route('language.change') }}" class="form-inline">
                                     @csrf
@@ -36,11 +37,54 @@
                                 </form>
                                 <small class="text-muted">{{ __('language_translation.changes_will_affect_the_entire_system_interface') }}</small>
                             </div>
+                            
+                            <!-- Manage Languages -->
+                            <div class="card mb-3">
+                                <div class="card-header">
+                                    <h5>{{ __('language_translation.manage_languages') }}</h5>
+                                </div>
+                                <div class="card-body p-0">
+                                    <div class="table-responsive" style="max-height: 250px; overflow-y: auto;">
+                                        <table class="table table-bordered mb-0 ">
+                                            <thead class="thead-light">
+                                                <tr>
+                                                    <th>{{ __('language_translation.language_name') }}</th>
+                                                    <th>{{ __('language_translation.actions') }}</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                @foreach($availableSystemLanguages as $language)
+                                                    <tr>
+                                                        <td>{{ $language->name }}</td>
+                                                        <td>
+                                                            @if($language->code !== 'en')
+                                                                <form action="{{ route('language.delete', $language->id) }}" method="POST" class="d-inline">
+                                                                    @csrf
+                                                                    @method('DELETE')
+                                                                    <button type="submit" class="btn btn-sm btn-danger" 
+                                                                        onclick="return confirm('{{ __('language_translation.confirm_delete_language') }}')">
+                                                                        <i class="fas fa-trash"></i> {{ __('language_translation.delete') }}
+                                                                    </button>
+                                                                </form>
+                                                            @else
+                                                                <button class="btn btn-sm btn-secondary" disabled>
+                                                                    <i class="fas fa-lock"></i> {{ __('language_translation.protected') }}
+                                                                </button>
+                                                            @endif
+                                                        </td>
+                                                    </tr>
+                                                @endforeach
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
 
-                        <!-- Right Side - Import New Language -->
+                        <!-- Right Side - Import/Export Operations -->
                         <div class="col-md-6">
-                            <div class="border p-3 rounded bg-light">
+                            <!-- Import New Language -->
+                            <div class="border p-3 rounded bg-light mb-3">
                                 <h5 class="mb-3">{{ __('language_translation.import_new_language') }}</h5>
                                 <form method="POST" action="{{ route('language.import') }}" class="form-inline" id="import-language-form">
                                     @csrf
@@ -57,11 +101,73 @@
                                             @endforeach
                                         </select>
                                         <button type="submit" class="btn btn-primary ml-2">
-                                            Import
+                                        {{ __('language_translation.import') }}
                                         </button>
                                     </div>
                                 </form>
                                 <small class="text-muted">{{ __('language_translation.only_shows_languages_not_already_imported') }}</small>
+                            </div>
+
+                            <!-- Export Translations -->
+                            <div class="border p-3 rounded bg-light mb-3">
+                                <h5 class="mb-3">{{ __('language_translation.export_translations') }}</h5>
+                                <form method="POST" action="{{ route('language.export') }}" class="form-inline">
+                                    @csrf
+                                    <div class="form-group w-100">
+                                        <label class="mr-2">{{ __('language_translation.select_language_to_export') }}:</label>
+                                        <select name="language" class="form-control" required>
+                                            <option value="">{{ __('language_translation.choose_language') }}</option>
+                                            <option value="en">
+                                                English
+                                            </option>
+                                        </select>
+                                        <select name="format" class="form-control ml-2" required>
+                                            <option value="json">JSON</option>
+                                        </select>
+                                        <button type="submit" class="btn btn-primary ml-2">
+                                            {{ __('language_translation.export') }}
+                                        </button>
+                                    </div>
+                                </form>
+                                <small class="text-muted">{{ __('language_translation.export_all_translations_for_selected_language') }}</small>
+                            </div>
+
+                            <!-- Bulk Import Translations -->
+                            <div class="border p-3 rounded bg-light">
+                                <h5 class="mb-3">{{ __('mobile_language_translation.bulk_import_translations') }}</h5>
+                                <form method="POST" action="{{ route('mobile_language.import.file') }}" enctype="multipart/form-data">
+                                    @csrf
+                                    <div class="form-row align-items-center">
+                                        <div class="col-md-8 mb-2">
+                                            <select name="language" class="form-control @error('language') is-invalid @enderror" required>
+                                                <option value="">{{ __('mobile_language_translation.choose_language') }}</option>
+                                                @foreach($languages as $language)
+                                                    @unless($availableSystemLanguages->contains('code', $language->code))
+                                                        <option value="{{ $language->code }}" {{ old('language') == $language->code ? 'selected' : '' }}>
+                                                            {{ $language->name }}
+                                                        </option>
+                                                    @endunless
+                                                @endforeach
+                                            </select>
+                                        </div>
+                                        <div class="col-md-4 mb-2">
+                                            <button type="submit" class="btn btn-primary w-100">
+                                                {{ __('mobile_language_translation.upload') }}
+                                            </button>
+                                        </div>
+                                        <div class="col-md-12">
+                                            <div class="input-group">
+                                                <input type="file" name="file" class="form-control @error('file') is-invalid @enderror" id="bulkImportFile" required>
+                                            </div>
+                                            @error('file')
+                                                <div class="invalid-feedback d-block">{{ $message }}</div>
+                                            @enderror
+                                        </div>
+                                    </div>
+                                    <small class="text-muted">
+                                        {{ __('language_translation.accepted_formats') }}: JSON
+                                    </small>
+                                </form>
                             </div>
                         </div>
                     </div>
@@ -70,6 +176,7 @@
         </div>
     </div>
 
+    
     <form method="POST" action="{{ route('language.save') }}" id="translation-form">
         @csrf
         <input type="hidden" name="current_language" id="form-current-language" value="{{ $currentLanguage }}">
@@ -164,6 +271,20 @@
     /* Button styling */
     .btn-sm {
         padding: 0.25rem 0.5rem;
+    }
+
+   .table-responsive::-webkit-scrollbar {
+        width: 8px;
+    }
+    .table-responsive::-webkit-scrollbar-track {
+        background: #f1f1f1;
+    }
+    .table-responsive::-webkit-scrollbar-thumb {
+        background: #888;
+        border-radius: 4px;
+    }
+    .table-responsive::-webkit-scrollbar-thumb:hover {
+        background: #555;
     }
 </style>
 @endpush

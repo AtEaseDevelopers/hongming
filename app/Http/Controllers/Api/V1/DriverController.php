@@ -509,6 +509,7 @@ class DriverController extends Controller
                 'kelindan_id' => 'required|numeric',
                 'lorry_id' => 'required|numeric',
                 'cash' => 'required|numeric',
+                'advance_amount' => 'nullable|numeric',
                 'wastage' => 'present|array',
                 'wastage.*.product_id' => 'required|numeric',
                 'wastage.*.quantity' => 'required|numeric'
@@ -532,7 +533,7 @@ class DriverController extends Controller
             if(empty($lorry)){
                 return response()->json([
                     'result' => false,
-                    'message' => __LINE__.$this->message_separator.'api.message.invalid_lorry',
+                    'message' => __LINE__.$this->message_separator.'Invalid Lorry',
                     'data' => null
                 ], 400);
             }
@@ -544,7 +545,7 @@ class DriverController extends Controller
                     DB::rollback();
                     return response()->json([
                         'result' => false,
-                        'message' => __LINE__.$this->message_separator.'api.message.trip_had_not_started',
+                        'message' => __LINE__.$this->message_separator.'Trip had not started',
                         'data' => null
                     ], 400);
                 }else{
@@ -553,6 +554,7 @@ class DriverController extends Controller
                     $newtrip->kelindan_id = $data['kelindan_id'];
                     $newtrip->lorry_id = $data['lorry_id'];
                     $newtrip->cash = $data['cash'];
+                    $newtrip->advance_amount = $data['advance_amount'] ?? 0;
                     $newtrip->type = 2;
                     $newtrip->date = date("Y-m-d H:i:s");
                     $newtrip->save();
@@ -564,7 +566,7 @@ class DriverController extends Controller
                             DB::rollback();
                             return response()->json([
                                 'result' => false,
-                                'message' => __LINE__.$this->message_separator.'api.message.wastage_quantity_more_than_available_quantity',
+                                'message' => __LINE__.$this->message_separator.'Wastage quantity more than available quantity',
                                 'data' => null
                             ], 400);
                         }else{
@@ -572,7 +574,7 @@ class DriverController extends Controller
                                 DB::rollback();
                                 return response()->json([
                                     'result' => false,
-                                    'message' => __LINE__.$this->message_separator.'api.message.wastage_quantity_more_than_available_quantity',
+                                    'message' => __LINE__.$this->message_separator.'Wastage quantity more than available quantity',
                                     'data' => null
                                 ], 400);
                             }else{
@@ -592,7 +594,7 @@ class DriverController extends Controller
                     DB::commit();
                     return response()->json([
                         'result' => true,
-                        'message' => __LINE__.$this->message_separator.'api.message.trip_had_been_ended_successfully',
+                        'message' => __LINE__.$this->message_separator.'Trip had been ended successfully',
                         'data' => $newtrip
                     ], 200);
                 }
@@ -600,7 +602,7 @@ class DriverController extends Controller
                 DB::rollback();
                 return response()->json([
                     'result' => false,
-                    'message' => __LINE__.$this->message_separator.'api.message.trip_had_not_started',
+                    'message' => __LINE__.$this->message_separator.'Trip had not started',
                     'data' => null
                 ], 400);
             }
@@ -1723,23 +1725,26 @@ class DriverController extends Controller
                 $invoicedetail->price = $id['price'];
                 $invoicedetail->totalprice = $id['quantity'] * $id['price'];
                 $totalprice = $totalprice + $invoicedetail->totalprice;
-                if($id['foc']){
-                    $invoicedetail->remark = "FOC";
+                if($id['foc']) {
+                    $invoicedetail->remark = "FOC"; // Mark as FOC but do NOT count towards achievequantity
+                } else {
+                    // Only update FOC achievequantity if the product is NOT FOC
                     $foc = Foc::where('customer_id', $customer->id)
-                    ->where('product_id', $id['product_id'])
-                    ->where('startdate','<=',date('Y-m-d H:i:s'))
-                    ->where('enddate','>',date('Y-m-d H:i:s'))
-                    ->where('status',1)
-                    // ->increment('achievequantity',$id['quantity'])
-                    // ->decrement('status',1);
-                    ->update(['status'=>1,'achievequantity'=>DB::raw('achievequantity + '.$id['quantity'])]);
-                }else{
-                    Foc::where('customer_id', $customer->id)
-                    ->where('product_id', $id['product_id'])
-                    ->where('startdate','<=',date('Y-m-d H:i:s'))
-                    ->where('enddate','>',date('Y-m-d H:i:s'))
-                    ->where('status',1)
-                    ->increment('achievequantity',$id['quantity']);
+                        ->where('product_id', $id['product_id'])
+                        ->where('startdate', '<=', date('Y-m-d H:i:s'))
+                        ->where('enddate', '>', date('Y-m-d H:i:s'))
+                        ->where('status', 1)
+                        ->first();
+
+                    if($foc) {
+                        $newAchieveQuantity = $foc->achievequantity + $id['quantity'];
+                        $newStatus = ($newAchieveQuantity >= $foc->quantity) ? 0 : 1;
+
+                        $foc->update([
+                            'achievequantity' => $newAchieveQuantity,
+                            'status' => $newStatus
+                        ]);
+                    }
                 }
                 $invoicedetail->save();
                 $inventorybalance = InventoryBalance::where('lorry_id', $trip->lorry_id)->where('product_id', $id['product_id'])->first();
@@ -3280,8 +3285,26 @@ class DriverController extends Controller
             $solddetail = DB::select('select p.name, sum(id.quantity) as quantity, sum(id.totalprice) as price from invoices i left join invoice_details id on id.invoice_id = i.id  left join products p on p.id = id.product_id where i.status = 1 and id.totalprice > 0 and DATE(i.date) = "'.$data['date'].'" and i.driver_id = '.$driver->id.' group by id.product_id, p.id, p.name');
             $productfoc = DB::Select('select sum(id.quantity) as productsold from invoices i left join invoice_details id on id.invoice_id = i.id where i.status = 1 and id.totalprice = 0 and DATE(i.date) = "'.$data['date'].'" and i.driver_id = '.$driver->id)[0]->productsold;
             $focdetail = DB::select('select p.name, sum(id.quantity) as quantity, sum(id.totalprice) as price from invoices i left join invoice_details id on id.invoice_id = i.id left join products p on p.id = id.product_id where i.status = 1 and id.totalprice = 0  and DATE(i.date) = "'.$data['date'].'" and i.driver_id = '.$driver->id.' group by id.product_id, p.id, p.name');
-            $trip = DB::select('select t.id, d.name as driver_name, k.name as kelindan_name, l.lorryno from trips t left join drivers d on d.id = t.driver_id left join kelindans k on k.id = t.kelindan_id left join lorrys l on l.id = t.lorry_id where t.driver_id = '.$driver->id.' and t.type = 1 and t.date >= "'.$data['date'].'" and t.date < "'.$data['date'].' 23:59:59"');
-            
+            $trip = DB::table('trips as t')
+                ->select([
+                    't.id',
+                    't.advance_amount',  // Make sure this matches your column name exactly
+                    'd.name as driver_name',
+                    'k.name as kelindan_name', 
+                    'l.lorryno'
+                ])
+                ->leftJoin('drivers as d', 'd.id', '=', 't.driver_id')
+                ->leftJoin('kelindans as k', 'k.id', '=', 't.kelindan_id')
+                ->leftJoin('lorrys as l', 'l.id', '=', 't.lorry_id')
+                ->where('t.driver_id', $driver->id)
+                ->where('t.type', 1)
+                ->whereDate('t.date', $data['date'])  // Better date filtering
+                ->get()
+                ->map(function ($trip) {
+                    // Convert null advance_amount to 0 if needed
+                    $trip->advance_amount = $trip->advance_amount ?? 0;
+                    return $trip;
+                });                        
             $transaction = DB::table('inventory_transactions as i_t')
             ->join('products as p', 'p.id', '=', 'i_t.product_id')
             ->join('drivers as d', function($join) use ($driver) {
@@ -3325,7 +3348,7 @@ class DriverController extends Controller
                 'trip' => $trip
             ];
             return response()->json([
-                'result' => false,
+                'result' => true,
                 'message' => __LINE__.$this->message_separator.'api.message.get_dashboard_successfully',
                 'data' => $result
             ], 200);
@@ -3362,10 +3385,11 @@ class DriverController extends Controller
                 'version'  => $languageVersion->version,
             ];
         }
-
         return response()->json([
-            'supported_languages' => $translations,
-        ]);
+                'result' => true,
+                'message' => __LINE__.$this->message_separator,
+                'data' => $translations
+            ], 200);
     }
 
     public function getTranslations(Request $request)
@@ -3406,9 +3430,16 @@ class DriverController extends Controller
             ->pluck('value', 'key')
             ->toArray();
 
-        return response()->json([
+        $result = [
             'version' => $version->version,
             'translation' => $translations
-        ]);
+        ];
+
+        return response()->json([
+                'result' => true,
+                'message' => __LINE__.$this->message_separator.'api.message.language_update_successfully',
+                'data' => $result
+            ], 200);
+       
     }   
 }

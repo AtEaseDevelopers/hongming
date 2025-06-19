@@ -1,12 +1,12 @@
 <?php
 
 return [
+    'column' => 'Column',
     'create' => 'Create',
-    'print' => 'Print',
-    'reset' => 'Reset',
-    'reload' => 'Reload',
     'excel' => 'Excel',
     'pdf' => 'Pdf',
-    'column' => 'Column',
+    'print' => 'Print',
+    'reload' => 'Reload',
+    'reset' => 'Reset',
     'show_10_rows' => 'Show 10 rows',
 ];

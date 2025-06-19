@@ -28,7 +28,7 @@
 <!-- Customer Id Field -->
 <div class="form-group col-sm-6">
     {!! Form::label('customer_id', __('invoices.customer')) !!}<span class="asterisk"> *</span>
-    {!! Form::select('customer_id', $customerItems, null, ['class' => 'form-control', 'placeholder' => 'Pick a Customer...']) !!}
+    {!! Form::select('customer_id', $customerItems, null, ['class' => 'form-control select2-customer', 'placeholder' => 'Pick a Customer...']) !!}
 </div>
 
 
@@ -101,6 +101,11 @@
             }
         });
         $(document).ready(function () {
+            $('.select2-customer').select2({
+                placeholder: "Search for a customer...",
+                allowClear: true,
+                width: '100%'
+            });
             HideLoad();
         });
         $("#save_exit").click(function(){

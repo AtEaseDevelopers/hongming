@@ -54,6 +54,7 @@ class CustomerGroupController extends AppBaseController
     public function store(CreateCodeRequest $request)
     {
         $input = $request->all();
+        $input['value'] = rand(); //random number since it is not important if got code with same value then will occur error
 
         $code = $this->codeRepository->create($input);
 
@@ -123,7 +124,10 @@ class CustomerGroupController extends AppBaseController
             return redirect(route('customer_group.index'));
         }
 
-        $code = $this->codeRepository->update($request->all(), $id);
+        $data = $request->all();
+        $data['value'] = rand(); //random number since it is not important if got code with same value then will occur error
+
+        $code = $this->codeRepository->update($data, $id);
 
         Flash::success(__('customer_group.customer_group_updated_successfully'));
 

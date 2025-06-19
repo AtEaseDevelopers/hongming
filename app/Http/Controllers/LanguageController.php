@@ -6,18 +6,19 @@ use App\Models\Language;
 use App\Models\LanguageTranslation;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\App;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Str;
 use Flash;
+use ZipArchive;
 
 class LanguageController extends Controller
 {
-    
     public function index()
     {
         $allLanguages = Language::all();
         $availableSystemLanguages = Language::whereHas('translations')->get();
-        $currentLanguage = session('current_language', App::getLocale() ?: 'en');
-
-        App::setLocale($currentLanguage);
+        $currentLanguage = App::getLocale();
 
         $translations = LanguageTranslation::where('language_id', function ($query) use ($currentLanguage) {
             $query->select('id')->from('languages')->where('code', $currentLanguage)->first();
@@ -30,7 +31,6 @@ class LanguageController extends Controller
             })
             ->toArray();
 
-        // Define pages and their translation keys
         $pages = [
             'side_menu' => [
                 'invoices' => $translations['side_menu']['invoices'] ?? '',
@@ -661,7 +661,7 @@ class LanguageController extends Controller
 
                 'company' => $translations['customers']['company'] ?? '',
                 'chinese_name' => $translations['customers']['chinese_name'] ?? '',
-                'payment_term' => $translations['customers']['payment_term'] ?? '',
+                'paymentterm' => $translations['customers']['paymentterm'] ?? '',
                 'agent' => $translations['customers']['agent'] ?? '',
                 'phone' => $translations['customers']['phone'] ?? '',
                 'address' => $translations['customers']['address'] ?? '',
@@ -806,6 +806,10 @@ class LanguageController extends Controller
                 'customer_code' => $translations['assign']['customer_code'] ?? '',
                 'customer_company' => $translations['assign']['customer_company'] ?? '',
 
+                'placeholder_pick_driver' => $translations['assign']['placeholder_pick_driver'] ?? '',
+                'placeholder_pick_group' => $translations['assign']['placeholder_pick_group'] ?? '',
+
+
                 'customer' => $translations['assign']['customer'] ?? '',
                 'sequence' => $translations['assign']['sequence'] ?? '',
                 'group' => $translations['assign']['group'] ?? '',
@@ -917,15 +921,44 @@ class LanguageController extends Controller
                 
                 
                 'select_language_to_import' => $translations['language_translation']['select_language_to_import'] ?? '',
-                'choose_language' => $translations['language_translation']['choose_language'] ?? '',
                 'only_shows_languages_not_already_imported' => $translations['language_translation']['only_shows_languages_not_already_imported'] ?? '',
 
                 'save_all_translations' => $translations['language_translation']['save_all_translations'] ?? '',
 
-                'system_language_changed_successfully' => $translations['language_translation']['system_language_saved_successfully'] ?? '',
+                'system_language_changed_successfully' => $translations['language_translation']['system_language_changed_successfully'] ?? '',
                 'system_language_updated_successfully' => $translations['language_translation']['system_language_updated_successfully'] ?? '',
                 'system_language_saved_successfully' => $translations['language_translation']['system_language_saved_successfully'] ?? '',
                 'language_ready_for_translation' => $translations['language_translation']['language_ready_for_translation'] ?? '',
+
+                'export_translations' =>$translations['language_translation']['export_translations'] ?? '',
+
+                'select_language_to_export' =>$translations['language_translation']['select_language_to_export'] ?? '',
+                'select_language' =>$translations['language_translation']['select_language'] ?? '',
+                'export_all_translations_for_selected_language' =>$translations['language_translation']['export_all_translations_for_selected_language'] ?? '',
+                'upload' =>$translations['language_translation']['upload'] ?? '',
+                'export' =>$translations['language_translation']['export'] ?? '',
+                'bulk_import_translations' =>$translations['language_translation']['bulk_import_translations'] ?? '',
+
+                'no_file_chosen' =>$translations['language_translation']['no_file_chosen'] ?? '',
+                'browse' =>$translations['language_translation']['browse'] ?? '',
+
+                'accepted_formats' =>$translations['language_translation']['accepted_formats'] ?? '',
+                'translations_imported_successfully' =>$translations['language_translation']['translations_imported_successfully'] ?? '',
+                'failed_to_import_translations' =>$translations['language_translation']['failed_to_import_translations'] ?? '',
+                'download_template' =>$translations['language_translation']['download_template'] ?? '',
+                'upload_translations' =>$translations['language_translation']['upload_translations'] ?? '',
+
+                'manage_languages' =>$translations['language_translation']['manage_languages'] ?? '',
+                'language_name' =>$translations['language_translation']['language_name'] ?? '',
+                'actions' =>$translations['language_translation']['actions'] ?? '',
+                'delete' =>$translations['language_translation']['delete'] ?? '',
+                'protected' =>$translations['language_translation']['protected'] ?? '',
+
+                'language_deleted_successfully' =>$translations['language_translation']['language_deleted_successfully'] ?? '',
+                'confirm_delete_language' =>$translations['language_translation']['confirm_delete_language'] ?? '',
+                'import' =>$translations['language_translation']['import'] ?? '',
+                'search_page_or_text' =>$translations['language_translation']['search_page_or_text'] ?? '',
+
             ],
             'mobile_language_translation' => [
                 'mobile_app_language_translation' => $translations['mobile_language_translation']['mobile_app_language_translation'] ?? '',
@@ -946,7 +979,6 @@ class LanguageController extends Controller
                 'translation' => $translations['mobile_language_translation']['translation'] ?? '',
 
                 'select_language_to_import' => $translations['mobile_language_translation']['select_language_to_import'] ?? '',
-                'choose_language' => $translations['mobile_language_translation']['choose_language'] ?? '',
                 'only_shows_languages_not_already_imported' => $translations['mobile_language_translation']['only_shows_languages_not_already_imported'] ?? '',
 
                 'save_all_translations' => $translations['mobile_language_translation']['save_all_translations'] ?? '',
@@ -955,7 +987,20 @@ class LanguageController extends Controller
                 'language_ready_for_translation' => $translations['mobile_language_translation']['language_ready_for_translation'] ?? '',
                 'mobile_language_delete_successfully' => $translations['mobile_language_translation']['mobile_language_delete_successfully'] ?? '',
                 'mobile_language_cannot_delete' => $translations['mobile_language_translation']['mobile_language_cannot_delete'] ?? '',
+                
+                'export_translations' => $translations['mobile_language_translation']['export_translations'] ?? '',
+                'select_language_to_export' => $translations['mobile_language_translation']['select_language_to_export'] ?? '',
+                'export' => $translations['mobile_language_translation']['export'] ?? '',
+                'export_all_translations_for_selected_language' => $translations['mobile_language_translation']['export_all_translations_for_selected_language'] ?? '',
+                'bulk_import_translations' => $translations['mobile_language_translation']['bulk_import_translations'] ?? '',
+                'select_language' => $translations['mobile_language_translation']['select_language'] ?? '',
+                'upload' => $translations['mobile_language_translation']['upload'] ?? '',
+                'accepted_formats' => $translations['mobile_language_translation']['accepted_formats'] ?? '',
+                'search' => $translations['mobile_language_translation']['search'] ?? '',
+                'import' => $translations['mobile_language_translation']['import'] ?? '',
 
+                'failed_to_import_translations' => $translations['mobile_language_translation']['failed_to_import_translations'] ?? '',
+                'translations_imported_successfully' => $translations['mobile_language_translation']['translations_imported_successfully'] ?? '',
             ],
             'user' => [
                 'users' => $translations['user']['users'] ?? '',
@@ -1042,6 +1087,7 @@ class LanguageController extends Controller
             ],
         ];
 
+
         return view('language.index', [
             'languages' => $allLanguages,
             'availableSystemLanguages' => $availableSystemLanguages,
@@ -1060,11 +1106,10 @@ class LanguageController extends Controller
         $languageCode = $request->language;
         App::setLocale($languageCode);
         session(['current_language' => $languageCode]);
-        session()->forget('is_imported'); // Clear import flag when changing language
-        
+        session()->forget('is_imported');
+
         $language = Language::where('code', $languageCode)->firstOrFail();
 
-        // Flash success message
         Flash::success(__('language_translation.system_language_updated_successfully').':'.$language->name);
 
         return back();
@@ -1078,14 +1123,13 @@ class LanguageController extends Controller
         $language = Language::where('code', $currentLanguage)->firstOrFail();
 
         $englishTranslations = LanguageTranslation::where('language_id', 1)
-        ->get()
-        ->keyBy(function($item) {
-            return $item->page . '.' . $item->key;
-        });
+            ->get()
+            ->keyBy(function($item) {
+                return $item->page . '.' . $item->key;
+            });
 
         foreach ($translations as $page => $items) {
             foreach ($items as $key => $value) {
-                // Use English translation as fallback if value is empty
                 $finalValue = empty($value) 
                     ? ($englishTranslations[$page.'.'.$key]->translated_text ?? '')
                     : $value;
@@ -1100,13 +1144,9 @@ class LanguageController extends Controller
                 );
             }
         }
-        
-        // Sync language files
         $this->syncLanguageFiles($language->id);
 
-        // Flash success message and clear import flag
         Flash::success(__('language_translation.system_language_saved_successfully'));
-
         session()->forget('is_imported');
 
         return back();
@@ -1114,7 +1154,6 @@ class LanguageController extends Controller
 
     public function importLanguage(Request $request)
     {
-        
         $request->validate([
             'language' => 'required|exists:languages,code',
         ]);
@@ -1124,7 +1163,6 @@ class LanguageController extends Controller
 
         $englishTranslations = LanguageTranslation::where('language_id', 1)->get();
     
-    // Create base translations in the new language using English as default
         foreach ($englishTranslations as $englishTranslation) {
             LanguageTranslation::updateOrCreate(
                 [
@@ -1137,61 +1175,179 @@ class LanguageController extends Controller
         }
         
         session(['current_language' => $languageCode]);
-        session(['is_imported' => true]); // Flag to clear form fields
+        session(['is_imported' => true]);
 
-        // Flash success message
         Flash::success(__('language_translation.language_ready_for_translation'));
-
         return redirect()->route('language.index');
     }
 
-    /**
-     * Sync language files with database translations for a given language.
-     *
-     * @param int $languageId The language ID to sync
-     * @return void
-     */
+    public function exportTranslations(Request $request)
+    {
+        $request->validate([
+            'language' => 'required|exists:languages,code',
+            'format' => 'required|in:json,csv,zip',
+        ]);
+
+        $language = Language::where('code', $request->language)->firstOrFail();
+        $translations = LanguageTranslation::where('language_id', $language->id)
+            ->get()
+            ->groupBy('page');
+
+        $fileName = "translations_{$language->code}_" . now()->format('Ymd_His');
+        
+        if ($request->format === 'json') {
+            $jsonData = [];
+            foreach ($translations as $page => $items) {
+                $jsonData[$page] = $items->pluck('translated_text', 'key')->toArray();
+            }
+            
+            $headers = [
+                'Content-Type' => 'application/json',
+                'Content-Disposition' => "attachment; filename={$fileName}.json",
+            ];
+            
+            return response()->json($jsonData, 200, $headers, JSON_PRETTY_PRINT);
+        }
+        
+        Flash::error('Invalid export format');
+        return back();
+    }
+
+    public function importTranslations(Request $request)
+    {
+
+         $request->validate([
+            'language' => 'required|exists:languages,code',
+            'file' => 'required|file|mimes:json|max:10240', // Allow text/plain
+        ]);
+
+        $language = Language::where('code', $request->language)->firstOrFail();
+        $file = $request->file('file');
+        $extension = $file->getClientOriginalExtension();
+        
+        try {
+            if ($extension === 'json') {
+                $this->importJsonFile($file, $language);
+            }
+            
+            Flash::success(__('language_translation.translations_imported_successfully'));
+        } catch (\Exception $e) {
+            Flash::error(__('language_translation.failed_to_import_translations') . ': ' . $e->getMessage());
+        }
+        
+        return back();
+    }
+
+    protected function importJsonFile($file, $language)
+    {
+        $content = file_get_contents($file->getRealPath());
+        $data = json_decode($content, true);
+        
+        if (json_last_error() !== JSON_ERROR_NONE) {
+            throw new \Exception('Invalid JSON file');
+        }
+        
+        $this->processImportData($data, $language);
+    }
+
+    protected function processImportData($data, $language)
+    {
+        foreach ($data as $page => $translations) {
+            foreach ($translations as $key => $value) {
+                if (!empty($value)) {
+                    LanguageTranslation::updateOrCreate(
+                        [
+                            'language_id' => $language->id,
+                            'page' => $page,
+                            'key' => $key,
+                        ],
+                        ['translated_text' => $value]
+                    );
+                }
+            }
+        }
+        
+        $this->syncLanguageFiles($language->id);
+    }
+
     protected function syncLanguageFiles($languageId)
     {
         $language = Language::find($languageId);
-        if (!$language) {
-            return; // Exit if language not found
-        }
+        if (!$language) return;
+        
         $languageCode = $language->code;
-
-        // Define the base path for language files
         $langPath = resource_path('lang/' . $languageCode);
 
-        // Ensure the language folder exists
         if (!file_exists($langPath)) {
             mkdir($langPath, 0755, true);
         }
 
-        // Fetch all translations for this language from the database
-        $translations = LanguageTranslation::where('language_id', $languageId)->get()->groupBy('page');
+        $translations = LanguageTranslation::where('language_id', $languageId)
+            ->get()
+            ->groupBy('page');
 
-        // Process each page (e.g., dashboard, homepage)
         foreach ($translations as $page => $pageTranslations) {
-            // Start building the file content
             $content = "<?php\n\nreturn [\n";
-
-            // Add each translation as a key-value pair
             foreach ($pageTranslations as $translation) {
                 $key = $translation->key;
                 $translatedText = $translation->translated_text ?: '';
-                // Escape single quotes in the translated text
                 $translatedText = str_replace("'", "\\'", $translatedText);
                 $content .= "    '$key' => '$translatedText',\n";
             }
-
-            // Close the array
             $content .= "];\n";
 
-            // Define the file path for the page
             $filePath = $langPath . '/' . $page . '.php';
-
-            // Write or update the file
             file_put_contents($filePath, $content);
         }
     }
+
+    public function deleteLanguage($id) 
+    {
+        $currentLanguage = session('current_language', config('app.locale', 'en'));
+
+        try {
+            $language = Language::findOrFail($id);
+            
+            // Prevent deletion of default English language
+            if ($language->code === 'en') {
+                Flash::error(__('language_translation.cannot_delete_default_language'));
+                return back();
+            }
+            
+            // Prevent deletion of currently active language
+            if ($language->code === app()->getLocale()) {
+                Flash::error(__('language_translation.cannot_delete_active_language'));
+                return back();
+            }
+            // Delete all translations for this language
+            LanguageTranslation::where('language_id', $language->id)->delete();
+                        
+            // Remove language files if they exist
+            $this->deleteLanguageFiles($language->code);
+            Flash::success(__('language_translation.language_deleted_successfully'));
+        } catch (\Exception $e) {
+            Flash::error('Error deleting language: ' . $e->getMessage());
+        }
+        
+        return back();
+    }
+
+    protected function deleteLanguageFiles($languageCode)
+    {
+        $langPath = resource_path('lang/' . $languageCode);
+        
+        if (file_exists($langPath)) {
+            // Delete all files in the language directory
+            $files = glob($langPath . '/*');
+            foreach ($files as $file) {
+                if (is_file($file)) {
+                    unlink($file);
+                }
+            }
+            
+            // Remove the directory itself
+            rmdir($langPath);
+        }
+    }
+
 }

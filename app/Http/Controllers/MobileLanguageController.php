@@ -33,8 +33,204 @@ class MobileLanguageController extends Controller
             ->pluck('value', 'key')
             ->toArray();
 
-        $defaultTranslations = [
-            "app.status.text.new" => "New",
+        $defaultTranslations = $this->getDefaultTranslations();
+
+        return view('mobile_language.index', [
+            'languages' => $allLanguages,
+            'availableSystemLanguages' => $availableSystemLanguages,
+            'translations' => $translations,
+            'defaultTranslations' => $defaultTranslations,
+            'selectedLanguage' => $selectedLanguage
+        ]);
+    }
+
+    public function edit($languageId)
+    {
+        $language = Language::findOrFail($languageId);
+        session(['mobile_current_language' => $language->code]);
+        Flash::success(__('mobile_language_translation.language_selected_for_editing') . ': ' . $language->name);
+        return redirect()->route('mobile_language.index');
+    }
+
+    public function saveTranslations(Request $request)
+    {
+        $currentLanguage = $request->input('current_language');
+        $translations = $request->input('translations', []);
+
+        $language = Language::where('code', $currentLanguage)->firstOrFail();
+
+        // Get English translations as fallback
+        $englishTranslations = MobileTranslation::where('language_id', 1)
+            ->get()
+            ->keyBy('key');
+
+        foreach ($translations as $key => $value) {
+            // Use English translation as fallback if value is empty
+            $finalValue = empty($value) 
+                ? ($englishTranslations[$key]->value ?? '')
+                : $value;
+                
+            MobileTranslation::updateOrCreate(
+                [
+                    'language_id' => $language->id,
+                    'key' => $key,
+                ],
+                ['value' => $finalValue]
+            );
+        }
+        
+        // Increment version
+        $this->incrementVersion($language->id);
+
+        Flash::success(__('mobile_language_translation.mobile_language_saved_successfully'));
+        return back();
+    }
+
+    public function importLanguage(Request $request)
+    {
+        $request->validate([
+            'language' => 'required|exists:languages,code',
+        ]);
+
+        $language = Language::where('code', $request->language)->firstOrFail();
+        $englishTranslations = MobileTranslation::where('language_id', 1)->get();
+    
+        // Create base translations in the new language using English as default
+        foreach ($englishTranslations as $translation) {
+            MobileTranslation::updateOrCreate(
+                [
+                    'language_id' => $language->id,
+                    'key' => $translation->key,
+                ],
+                ['value' => $translation->value]
+            );
+        }
+        
+        // Set initial version
+        MobileTranslationVersion::updateOrCreate(
+            ['language_id' => $language->id],
+            ['version' => 1]
+        );
+
+        session(['mobile_current_language' => $language->code]);
+        Flash::success(__('mobile_language_translation.language_ready_for_translation'));
+        return redirect()->route('mobile_language.index');
+    }
+
+    public function deleteLanguage($id)
+    {
+        $language = Language::findOrFail($id);
+
+        // Check if the language ID is 1 and the code is 'en'
+        if ($language->id === 1 && $language->code === 'en') {
+            Flash::error(__('mobile_language_translation.mobile_language_cannot_delete'));
+        } else {
+            // Delete related mobile translations
+            MobileTranslation::where('language_id', $language->id)->delete();
+
+            // Optionally, delete the related version record if it exists
+            MobileTranslationVersion::where('language_id', $language->id)->delete();
+
+            Flash::success(__('mobile_language_translation.mobile_language_delete_successfully'));
+        }
+
+        return redirect(route('mobile_language.index'));
+    }
+
+    public function exportTranslations(Request $request)
+    {
+        $request->validate([
+            'language' => 'required|exists:languages,code',
+            'format' => 'required|in:json',
+        ]);
+
+        $language = Language::where('code', $request->language)->firstOrFail();
+        // Get default translations
+        $defaultTranslations = $this->getDefaultTranslations();
+
+        // Get translations from database
+        $translations = MobileTranslation::where('language_id', $language->id)
+            ->pluck('value', 'key')
+            ->toArray();
+
+            // Merge with default translations
+        $exportData = [];
+         foreach ($defaultTranslations as $key => $defaultValue) {
+            $exportData[$key] = $translations[$key] ?? $defaultValue;
+        }
+
+        $fileName = "mobile_lang_{$language->code}_" . now()->format('Ymd_HHis').time();
+
+        $headers = [
+            'Content-Type' => 'application/json',
+            'Content-Disposition' => "attachment; filename={$fileName}.json",
+        ];
+
+        return response()->json($exportData, 200, $headers, JSON_PRETTY_PRINT);
+    }
+
+    public function importTranslations(Request $request)
+    {
+
+        $request->validate([
+            'language' => 'required|exists:languages,code',
+            'file' => 'required|file|mimes:json|max:10240',
+        ]);
+
+        $language = Language::where('code', $request->language)->firstOrFail();
+        $file = $request->file('file');
+
+        try {
+            $content = file_get_contents($file->getRealPath());
+            $data = json_decode($content, true);
+
+            if (json_last_error() !== JSON_ERROR_NONE) {
+                throw new \Exception('Invalid JSON file: ' . json_last_error_msg());
+            }
+
+            // Get default translations
+            $defaultTranslations = $this->getDefaultTranslations();
+            foreach ($data as $key => $value) {
+                $key = trim($key); // Normalize key
+                if (array_key_exists($key, $defaultTranslations)) {
+                    if (!empty($value)) {
+                        MobileTranslation::updateOrCreate(
+                            [
+                                'language_id' => $language->id,
+                                'key' => $key,
+                            ],
+                            ['value' => $value]
+                        );
+                    }
+                }
+            }
+
+            Flash::success(__('mobile_language_translation.translations_imported_successfully'));
+        } catch (\Exception $e) {
+            \Log::error('Import translations failed', ['error' => $e->getMessage()]);
+            Flash::error(__('mobile_language_translation.failed_to_import_translations') . ': ' . $e->getMessage());
+        }
+
+        return back();
+    }
+
+
+    protected function incrementVersion($languageId)
+    {
+        // Retrieve the version record or create a new one if it doesn't exist
+        $versionRecord = MobileTranslationVersion::firstOrCreate(
+            ['language_id' => $languageId],
+            ['version' => 1] // Initial version if it doesn't exist
+        );
+
+        // Increment the version by 1
+        $versionRecord->increment('version');
+    }
+
+    private function getDefaultTranslations()
+    {
+        return[
+             "app.status.text.new" => "New",
             "app.status.text.pending" => "Pending",
             "app.status.text.completed" => "Completed",
             "app.status.text.cancelled" => "Cancelled",
@@ -272,7 +468,11 @@ class MobileLanguageController extends Controller
             "app.invoice.text.issueon" => "Issue On",
             "app.invoice.text.products" => "Products",
             "app.invoice.button.previewinvoice" => "Preview Invoice",
-
+            "app.error.sessionexpired.dialog.text.message"=> "Session expired. Please login again.",
+            "app.error.sessionexpired.dialog.button.action"=> "Re-login",
+            "app.error.connectiontimeout.text"=> "Network Error",
+            "app.error.noconnection.text"=> "Network Error",
+            "app.endtrip.text.advance"=> "Advance",
 
             "api.message.login_successfully" => "Login successfully",
             "api.message.logout_successfully" => "Logout successfully",
@@ -346,120 +546,9 @@ class MobileLanguageController extends Controller
             "api.message.transaction_not_found"=> "Transaction not found",
 
             "api.message.get_dashboard_successfully"=> "Get dashboard successfully",
+            "api.message.language_update_successfully"=> "Language Update successfully",
 
         ];
-        
-        return view('mobile_language.index', [
-            'languages' => $allLanguages,
-            'availableSystemLanguages' => $availableSystemLanguages,
-            'translations' => $translations,
-            'defaultTranslations' => $defaultTranslations,
-            'selectedLanguage' => $selectedLanguage
-        ]);
     }
 
-    public function edit($languageId)
-    {
-        $language = Language::findOrFail($languageId);
-        session(['mobile_current_language' => $language->code]);
-        Flash::success(__('mobile_language_translation.language_selected_for_editing'). $language->name);
-        return redirect()->route('mobile_language.index');
-    }
-
-    public function saveTranslations(Request $request)
-    {
-        $currentLanguage = $request->input('current_language');
-        $translations = $request->input('translations', []);
-
-        $language = Language::where('code', $currentLanguage)->firstOrFail();
-
-        // Get English translations as fallback
-        $englishTranslations = MobileTranslation::where('language_id', 1)
-            ->get()
-            ->keyBy('key');
-
-        foreach ($translations as $key => $value) {
-            // Use English translation as fallback if value is empty
-            $finalValue = empty($value) 
-                ? ($englishTranslations[$key]->value ?? '')
-                : $value;
-                
-            MobileTranslation::updateOrCreate(
-                [
-                    'language_id' => $language->id,
-                    'key' => $key,
-                ],
-                ['value' => $finalValue]
-            );
-        }
-        
-        // Increment version
-        $this->incrementVersion($language->id);
-
-        Flash::success(__('mobile_language_translation.mobile_language_saved_successfully'));
-        return back();
-    }
-
-    public function importLanguage(Request $request)
-    {
-        $request->validate([
-            'language' => 'required|exists:languages,code',
-        ]);
-
-        $language = Language::where('code', $request->language)->firstOrFail();
-        $englishTranslations = MobileTranslation::where('language_id', 1)->get();
-    
-        // Create base translations in the new language using English as default
-        foreach ($englishTranslations as $translation) {
-            MobileTranslation::updateOrCreate(
-                [
-                    'language_id' => $language->id,
-                    'key' => $translation->key,
-                ],
-                ['value' => $translation->value]
-            );
-        }
-        
-        // Set initial version
-        MobileTranslationVersion::updateOrCreate(
-            ['language_id' => $language->id],
-            ['version' => 1]
-        );
-
-        session(['mobile_current_language' => $language->code]);
-        Flash::success(__('mobile_language_translation.language_ready_for_translation'));
-        return redirect()->route('mobile_language.index');
-    }
-
-    public function deleteLanguage($id)
-    {
-        $language = Language::findOrFail($id);
-
-        // Check if the language ID is 1 and the code is 'en'
-        if ($language->id === 1 && $language->code === 'en') {
-            Flash::error(__('mobile_language_translation.mobile_language_cannot_delete'));
-        } else {
-            // Delete related mobile translations
-            MobileTranslation::where('language_id', $language->id)->delete();
-
-            // Optionally, delete the related version record if it exists
-            MobileTranslationVersion::where('language_id', $language->id)->delete();
-
-            Flash::success(__('mobile_language_translation.mobile_language_delete_successfully'));
-        }
-
-        return redirect(route('mobile_language.index'));
-    }
-    
-    protected function incrementVersion($languageId)
-    {
-        // Retrieve the version record or create a new one if it doesn't exist
-        $versionRecord = MobileTranslationVersion::firstOrCreate(
-            ['language_id' => $languageId],
-            ['version' => 1] // Initial version if it doesn't exist
-        );
-
-        // Increment the version by 1
-        $versionRecord->increment('version');
-    }
 }

@@ -152,6 +152,7 @@ Route::get('/clear-cache', function() {
     Artisan::call('cache:clear');
     Artisan::call('config:cache');
     Artisan::call('view:clear');
+    Artisan::call('route:clear');
     return 'Application cache has been cleared';
 });
 
@@ -440,6 +441,9 @@ Route::group(['middleware' => ['auth']], function() {
             Route::post('/change', [App\Http\Controllers\LanguageController::class, 'changeLanguage'])->name('language.change');
             Route::post('/save', [App\Http\Controllers\LanguageController::class, 'saveTranslations'])->name('language.save');
             Route::post('/import', [App\Http\Controllers\LanguageController::class, 'importLanguage'])->name('language.import');
+            Route::delete('/language/{id}', [App\Http\Controllers\LanguageController::class, 'deleteLanguage'])->name('language.delete');
+            Route::post('/language/export', [App\Http\Controllers\LanguageController::class, 'exportTranslations'])->name('language.export');
+            Route::post('/language/import/file', [App\Http\Controllers\LanguageController::class, 'importTranslations'])->name('language.import.file');
         });
     });
     
@@ -448,8 +452,11 @@ Route::group(['middleware' => ['auth']], function() {
             Route::get('/', [App\Http\Controllers\MobileLanguageController::class, 'index'])->name('mobile_language.index');
             Route::get('/edit/{id}', [App\Http\Controllers\MobileLanguageController::class, 'edit'])->name('mobile_language.edit');
             Route::post('/save', [App\Http\Controllers\MobileLanguageController::class, 'saveTranslations'])->name('mobile_language.save');
-            Route::post('/delete/{id}', [App\Http\Controllers\MobileLanguageController::class, 'deleteLanguage'])->name('mobile_language.destroy');
+            Route::delete('/delete/{id}', [App\Http\Controllers\MobileLanguageController::class, 'deleteLanguage'])->name('mobile_language.destroy');
             Route::post('/import', [App\Http\Controllers\MobileLanguageController::class, 'importLanguage'])->name('mobile_language.import');
+
+            Route::post('/export', [App\Http\Controllers\MobileLanguageController::class, 'exportTranslations'])->name('mobile_language.export');
+            Route::post('/import-file', [App\Http\Controllers\MobileLanguageController::class, 'importTranslations'])->name('mobile_language.import.file');
         });
     });
 
