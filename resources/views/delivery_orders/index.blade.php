@@ -2,7 +2,7 @@
 
 @section('content')
     <ol class="breadcrumb">
-        <li class="breadcrumb-item">Delivery Orders</li>
+        <li class="breadcrumb-item">Project</li>
     </ol>
     <div class="container-fluid">
         <div class="animated fadeIn">
@@ -12,11 +12,10 @@
                      <div class="card">
                          <div class="card-header">
                              <i class="fa fa-align-justify"></i>
-                             Delivery Orders
-                             <a class="pull-right" href="{{ route('deliveryOrders.create') }}"><i class="fa fa-plus-square fa-lg"></i></a>
-                             <a class="pull-right text-danger pr-2" id="massdelete" href="#" alt="Mass delete"><i class="fa fa-trash fa-lg"></i></a>
-                             <a class="pull-right text-success pr-2" id="massactive" href="#" alt="Mass active"><i class="fa fa-check fa-lg"></i></a>
-                             <a class="pull-right text-secondary pr-2" id="masssave" href="#" alt="Save view"><i class="fa fa-save fa-lg"></i></a>
+                             Project
+                             @if(auth()->user()->roles()->pluck('name')->first() === 'normal admin')
+                                <a class="pull-right" href="{{ route('deliveryOrders.create') }}"><i class="fa fa-plus-square fa-lg"></i></a>
+                             @endif
                          </div>
                          <div class="card-body">
                              @include('delivery_orders.table')
@@ -31,8 +30,75 @@
     </div>
 @endsection
 
+@push('styles')
+<style>
+    .progress-popover {
+        cursor: pointer;
+        transition: all 0.3s ease;
+        display: inline-block;
+    }
+    .progress-popover:hover {
+        background-color: #f8f9fa !important;
+    }
+    .progress-popover.active-popover {
+        background-color: #6c757d !important;
+        color: white !important;
+    }
+    .popover {
+        max-width: 600px !important;
+    }
+    .popover-header {
+        background-color: #007bff;
+        color: white;
+        border-bottom: 1px solid #0056b3;
+    }
+</style>
+@endpush
+
 @push('scripts')
     <script>
+        $(document).ready(function() {
+        // Re-initialize popovers when DataTable is redrawn
+            $('#dataTableBuilder').on('draw.dt', function() {
+                $('.progress-popover').popover('dispose');
+                initializePopovers();
+            });
+
+            function initializePopovers() {
+                $('.progress-popover').popover({
+                    placement: "top",
+                    trigger: "click",
+                    container: "body",
+                    html: true
+                });
+
+                // Handle popover show event to add active class
+                $('.progress-popover').on('show.bs.popover', function() {
+                    // Remove active class from all other popovers
+                    $('.progress-popover').removeClass('active-popover');
+                    // Add active class to current popover
+                    $(this).addClass('active-popover');
+                });
+
+                // Handle popover hide event to remove active class
+                $('.progress-popover').on('hide.bs.popover', function() {
+                    $(this).removeClass('active-popover');
+                });
+            }
+
+            // Initialize on page load
+            initializePopovers();
+
+            // Close popover when clicking elsewhere
+            $(document).on('click', function(e) {
+                if (!$(e.target).closest('.progress-popover').length && 
+                    !$(e.target).closest('.popover').length) {
+                    $('.progress-popover').popover('hide');
+                    $('.progress-popover').removeClass('active-popover');
+                }
+            });
+        });
+
         $(document).keyup(function(e) {
             if(e.altKey && e.keyCode == 78){
                 $('.card .card-header a')[0].click();

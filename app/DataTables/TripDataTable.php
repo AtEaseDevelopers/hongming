@@ -6,6 +6,7 @@ use App\Models\Trip;
 use Yajra\DataTables\Services\DataTable;
 use Yajra\DataTables\EloquentDataTable;
 use Illuminate\Support\Facades\Crypt;
+use Carbon\Carbon;
 
 class TripDataTable extends DataTable
 {
@@ -19,18 +20,43 @@ class TripDataTable extends DataTable
     {
         $dataTable = new EloquentDataTable($query);
 
-      return $dataTable->addColumn('action', function ($row) {
-        if ($row->type == 2) {
-            return '<div class="btn-group">
-                        <a href="' . route('trips.show', Crypt::encrypt($row->id)) . '" class="btn btn-ghost-success">
-                            <i class="fa fa-eye"></i>
-                        </a>
-                    </div>';
-        } else {
-            return '';
-        }
-    })
-    ->rawColumns(['action']);
+        return $dataTable->addColumn('action', function ($row) {
+            if ($row->type == 2) {
+                return '<div class="btn-group">
+                            <a href="' . route('trips.show', Crypt::encrypt($row->id)) . '" class="btn btn-ghost-success">
+                                <i class="fa fa-eye"></i>
+                            </a>
+                        </div>';
+            } else {
+                return '';
+            }
+        })
+        ->addColumn('end_trip_action', function ($row) {
+            // Show end trip button only for Start Trip (type 1) and if not already ended
+            if ($row->type == 1 && !$row->isEnded()) {
+                return '<div class="btn-group">
+                            <button type="button" class="btn btn-ghost-danger btn-end-trip" 
+                                    data-trip-id="' . $row->id . '" 
+                                    data-driver-name="' . ($row->driver->name ?? 'N/A') . '"
+                                    data-lorry-no="' . ($row->lorry->lorryno ?? 'N/A') . '">
+                                <i class="fa fa-flag-checkered"></i> End Trip
+                            </button>
+                        </div>';
+            } else {
+                return '<span class="text-muted">Completed</span>';
+            }
+        })
+        ->editColumn('type', function ($row) {
+            if ($row->type == 1) {
+                return '<span class="badge badge-primary">Start Trip</span>';
+            } else {
+                return '<span class="badge badge-success">End Trip</span>';
+            }
+        })
+        ->editColumn('date', function ($row) {
+            return Carbon::parse($row->date)->format('d-m-Y H:i');
+        })
+        ->rawColumns(['action', 'end_trip_action', 'type']);
     }
 
     /**
@@ -42,10 +68,9 @@ class TripDataTable extends DataTable
     public function query(Trip $model)
     {
         return $model->newQuery()
-        ->with('driver:id,name')
-        ->with('kelindan:id,name')
-        ->with('lorry:id,lorryno')
-        ->select('trips.*');
+            ->with('driver:id,name')
+            ->with('lorry:id,lorryno')
+            ->select('trips.*');
     }
 
     /**
@@ -58,20 +83,14 @@ class TripDataTable extends DataTable
         return $this->builder()
             ->columns($this->getColumns())
             ->minifiedAjax()
-            ->addAction(['title' => trans('trips.action'), 'printable' => false])
             ->parameters([
                 'dom'       => '<"row"B><"row"<"dataTableBuilderDiv"t>><"row"ip>',
                 'stateSave' => true,
                 'stateDuration' => 0,
-                'processing' => false,
+                'processing' => true,
                 'order'     => [[1, 'desc']],
-                'lengthMenu' => [[ 10, 50, 100, 300 ],[ '10 rows', '50 rows', '100 rows', '300 rows' ]],
+                'lengthMenu' => [[10, 50, 100, 300], ['10 rows', '50 rows', '100 rows', '300 rows']],
                 'buttons' => [
-                    // [
-                    //     'extend' => 'create',
-                    //     'className' => 'btn btn-default btn-sm no-corner',
-                    //     'text' => '<i class="fa fa-plus"></i> ' . trans('table_buttons.create'),
-                    // ],
                     [
                         'extend' => 'print',
                         'className' => 'btn btn-default btn-sm no-corner',
@@ -93,7 +112,7 @@ class TripDataTable extends DataTable
                         'exportOptions' => ['columns' => ':visible:not(:last-child)'],
                         'className' => 'btn btn-default btn-sm no-corner',
                         'title' => null,
-                        'filename' => 'invoice' . date('dmYHis')
+                        'filename' => 'trips_' . date('dmYHis')
                     ],
                     [
                         'extend' => 'pdfHtml5',
@@ -103,7 +122,7 @@ class TripDataTable extends DataTable
                         'exportOptions' => ['columns' => ':visible:not(:last-child)'],
                         'className' => 'btn btn-default btn-sm no-corner',
                         'title' => null,
-                        'filename' => 'invoice' . date('dmYHis')
+                        'filename' => 'trips_' . date('dmYHis')
                     ],
                     [
                         'extend' => 'colvis',
@@ -117,24 +136,20 @@ class TripDataTable extends DataTable
                     ],
                 ],
                 'columnDefs' => [
-                    // [
-                    //     'targets' => -1,
-                    //     'visible' => true,
-                    //     'className' => 'dt-body-right'
-                    // ],
-                    // [
-                    //     'targets' => 0,
-                    //     'visible' => true,
-                    //     'render' => 'function(data, type){return "<input type=\'checkbox\' class=\'checkboxselect\' checkboxid=\'"+data+"\'/>";}'
-                    // ],
                     [
-                        'targets' => 6,
-                        'render' => 'function(data, type){return data == 1 ? "Start Trip" : "End Trip";}'
+                        'targets' => 4, // Type column (index 4)
+                        'render' => 'function(data, type, row, meta){ 
+                            if(type === "display") {
+                                return data; // Return the HTML badge
+                            }
+                            // For sorting and filtering, return numeric value
+                            return row.type; 
+                        }'
                     ],
-                    
                     [
-                        'targets' => 6,
-                        'render' => 'function(data, type){return data == 1 ? "Start Trip" : "End Trip";}'
+                        'targets' => 5, // End Trip Action column
+                        'searchable' => false,
+                        'orderable' => false,
                     ],
                 ],
                 'initComplete' => 'function(){
@@ -144,19 +159,31 @@ class TripDataTable extends DataTable
                     .every(function (index) {
                         var column = this;
                         if(columns[index].searchable){
-                            if(columns[index].title == \'Type\'){
-                                var input = \'<select class="border-0" style="width: 100%;"><option value="1">Start Trip</option><option value="2">End Trip</option></select>\';
-                            }else if(columns[index].title == \'Date\'){
-                                var input = \'<input type="text" id="\'+index+\'Date" onclick="searchDateColumn(this);" placeholder="Search ">\';
+                            if(columns[index].title == "Type"){
+                                var input = \'<select class="border-0" style="width: 100%;"><option value="">All</option><option value="1">Start Trip</option><option value="2">End Trip</option></select>\';
+                                $(input).appendTo($(column.footer()).empty())
+                                .on(\'change\', function(){
+                                    column.search($(this).val()).draw();
+                                    ShowLoad();
+                                });
+                            }else if(columns[index].title == "Date"){
+                                var input = \'<input type="text" id="\'+index+\'Date" onclick="searchDateColumn(this);" placeholder="Search Date">\';
+                                $(input).appendTo($(column.footer()).empty())
+                                .on(\'keyup change\', function(){
+                                    column.search($(this).val()).draw();
+                                    ShowLoad();
+                                });
                             }else{
-                                var input = \'<input type="text" placeholder="Search ">\';
+                                var input = \'<input type="text" placeholder="Search">\';
+                                $(input).appendTo($(column.footer()).empty())
+                                .on(\'keyup change\', function(){
+                                    column.search($(this).val()).draw();
+                                    ShowLoad();
+                                });
                             }
-                            $(input).appendTo($(column.footer()).empty()).on(\'change\', function(){
-                                column.search($(this).val(),true,false).draw();
-                                ShowLoad();
-                            })
                         }
                     });
+                    HideLoad();
                 }'
             ]);
     }
@@ -169,30 +196,57 @@ class TripDataTable extends DataTable
     protected function getColumns()
     {
         return [
-            'id'=> new \Yajra\DataTables\Html\Column(['title' => trans('trips.trip_id'),
-            'data' => 'id',
-            'name' => 'id']),
+            'id' => new \Yajra\DataTables\Html\Column([
+                'title' => trans('trips.trip_id'),
+                'data' => 'id',
+                'name' => 'id',
+                'width' => '50px',
+                'searchable' => false
+            ]),
 
-            'date',
+            'date' => new \Yajra\DataTables\Html\Column([
+                'title' => 'Date',
+                'data' => 'date',
+                'name' => 'date',
+                'searchable' => true,
+                'width' => '100px'
+            ]),
 
-            'driver_id'=> new \Yajra\DataTables\Html\Column(['title' => trans('trips.driver'),
-            'data' => 'driver.name',
-            'name' => 'driver.name']),
+            'driver_id' => new \Yajra\DataTables\Html\Column([
+                'title' => trans('trips.driver'),
+                'data' => 'driver.name',
+                'name' => 'driver.name',
+                'searchable' => true,
+                'width' => '120px'
+            ]),
 
-            'kelindan_id'=> new \Yajra\DataTables\Html\Column(['title' => trans('trips.kelindan'),
-            'data' => 'kelindan.name',
-            'name' => 'kelindan.name']),
+            'lorry_id' => new \Yajra\DataTables\Html\Column([
+                'title' => trans('trips.lorry'),
+                'data' => 'lorry.lorryno',
+                'name' => 'lorry.lorryno',
+                'searchable' => true,
+                'width' => '100px'
+            ]),
 
-            'lorry_id'=> new \Yajra\DataTables\Html\Column(['title' => trans('trips.lorry'),
-            'data' => 'lorry.lorryno',
-            'name' => 'lorry.lorryno']),
+            'type' => new \Yajra\DataTables\Html\Column([
+                'title' => trans('trips.type'),
+                'data' => 'type',
+                'name' => 'type',
+                'searchable' => true,
+                'orderable' => true,
+                'width' => '100px'
+            ]),
 
-            'cash'=> new \Yajra\DataTables\Html\Column(['title' => trans('trips.closing_cash'),
-            'data' => 'cash',
-            'name' => 'cash']),
-
-
-            trans('trips.type'),
+            'end_trip_action' => new \Yajra\DataTables\Html\Column([
+                'title' => 'Action',
+                'data' => 'end_trip_action',
+                'name' => 'end_trip_action',
+                'searchable' => false,
+                'orderable' => false,
+                'width' => '100px',
+                'exportable' => false,
+                'printable' => false,
+            ]),
         ];
     }
 

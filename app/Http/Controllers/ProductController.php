@@ -74,11 +74,32 @@ class ProductController extends AppBaseController
             return Redirect::back()->withInput($input)->withErrors('The name cannot contain single quote');
         }
 
-        $product = $this->productRepository->create($input);
+        // Validate that at least one UOM is marked as default
+        $hasDefault = false;
+        $uomNames = [];
+        if (isset($input['uoms']) && is_array($input['uoms'])) {
+            foreach ($input['uoms'] as $uom) {
+                $uomName = strtolower(trim($uom['name']));
+                if (in_array($uomName, $uomNames)) {
+                    return Redirect::back()->withInput($input)->withErrors('Each UOM name must be unique for this product.');
+                }
+                $uomNames[] = $uomName;
+            }
+        }
 
-        Flash::success($input['code'].__('products.saved_successfully'));
-
-        return redirect(route('products.index'));
+        DB::beginTransaction();
+        try {
+            $product = $this->productRepository->create($input);
+            
+            DB::commit();
+            
+            Flash::success($input['code'].__('products.saved_successfully'));
+            return redirect(route('products.index'));
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Flash::error('Error saving product: ' . $e->getMessage());
+            return Redirect::back()->withInput($input);
+        }
     }
 
     /**
@@ -152,11 +173,30 @@ class ProductController extends AppBaseController
             return Redirect::back()->withInput($input)->withErrors('The name cannot contain single quote');
         }
 
-        $product = $this->productRepository->update($input, $id);
+        $uomNames = [];
+        if (isset($input['uoms']) && is_array($input['uoms'])) {
+            foreach ($input['uoms'] as $uom) {
+                $uomName = strtolower(trim($uom['name']));
+                if (in_array($uomName, $uomNames)) {
+                    return Redirect::back()->withInput($input)->withErrors('Each UOM name must be unique for this product.');
+                }
+                $uomNames[] = $uomName;
+            }
+        }
 
-        Flash::success($product->code.__('products.updated_successfully'));
-
-        return redirect(route('products.index'));
+        DB::beginTransaction();
+        try {
+            $product = $this->productRepository->update($input, $id);
+            
+            DB::commit();
+            
+            Flash::success($product->code.__('products.updated_successfully'));
+            return redirect(route('products.index'));
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Flash::error('Error updating product: ' . $e->getMessage());
+            return Redirect::back()->withInput($input);
+        }
     }
 
     /**
@@ -273,7 +313,9 @@ class ProductController extends AppBaseController
             $products = Product::whereIn('id',$ids)->get();
             
             for ($i = 0; $i < count($products) ;$i++) {
-                $res = $xero->createItem($products[$i]->code, $products[$i]->name, $products[$i]->price);
+                // Use default price for Xero sync
+                $defaultPrice = $products[$i]->default_price;
+                $res = $xero->createItem($products[$i]->code, $products[$i]->name, $defaultPrice);
 
                 if (!$res->ok()) {  
                     throw new Exception('Failed to sync product.');
@@ -287,6 +329,28 @@ class ProductController extends AppBaseController
             
             Flash::error('Something went wrong. Please contact administator.');
             return redirect(route('products.index'));
+        }
+    }
+
+    /**
+     * API to get product UOMs
+     */
+    public function getProductUoms($id)
+    {
+        try {
+            $id = Crypt::decrypt($id);
+            $product = Product::find($id);
+            
+            if (!$product) {
+                return response()->json(['error' => 'Product not found'], 404);
+            }
+            
+            return response()->json([
+                'uoms' => $product->uoms ?? [],
+                'default_price' => $product->default_price
+            ]);
+        } catch (\Exception $e) {
+            return response()->json(['error' => 'Invalid product ID'], 400);
         }
     }
 }

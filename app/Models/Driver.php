@@ -39,6 +39,8 @@ class Driver extends Model
         'remark',
         'session',
         'invoice_runningnumber',
+        'fcm_token',
+        'fcm_token_updated_at'
     ];
 
     protected $hidden = [

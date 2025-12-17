@@ -2,7 +2,7 @@
 <div class="form-group col-sm-6">
     {!! Form::label('driver_id', __('assign.driver')) !!}<span class="asterisk"> *</span>
     {!! Form::select('driver_id', $driverItems, null, [
-        'class' => 'form-control',
+        'class' => 'form-control select2-driver',
         'placeholder' => __('assign.placeholder_pick_driver'),
         'autofocus',
         'required' => true
@@ -13,7 +13,7 @@
 <div class="form-group col-sm-6">
     {!! Form::label('group', __('assign.group')) !!}<span class="asterisk"> *</span>
     {!! Form::select('group', $groups, null, [
-        'class' => 'form-control',
+        'class' => 'form-control select2-group',
         'placeholder' => __('assign.placeholder_pick_group'),
         'required' => true
     ]) !!}
@@ -35,7 +35,22 @@
                 $('form a.btn-secondary')[0].click();
             }
         });
+        
         $(document).ready(function() {
+            // Initialize Select2 for driver field
+            $('.select2-driver').select2({
+                placeholder: "Search for a driver...",
+                allowClear: true,
+                width: '100%'
+            });
+            
+            // Initialize Select2 for group field
+            $('.select2-group').select2({
+                placeholder: "Search for a group...",
+                allowClear: true,
+                width: '100%'
+            });
+            
             insert();
             HideLoad();
         });
@@ -110,4 +125,19 @@
             `;
         }
     </script>
+
+    <style>
+        /* Style the Select2 dropdowns to match your theme */
+        .select2-container--default .select2-selection--single {
+            border: 1px solid #ced4da;
+            border-radius: .25rem;
+            height: 38px;
+        }
+        .select2-container--default .select2-selection--single .select2-selection__rendered {
+            line-height: 36px;
+        }
+        .select2-container--default .select2-selection--single .select2-selection__arrow {
+            height: 36px;
+        }
+    </style>
 @endpush

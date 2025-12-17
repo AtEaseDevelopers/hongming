@@ -10,27 +10,29 @@
     
     <script>
         $(document).ready(function () {
-
             $(".buttons-reset").click(function(e){
                 $('#dataTableBuilder tfoot th input').val('');
                 $('#dataTableBuilder tfoot th select').val(1);
             });
+            
             var table = $('#dataTableBuilder').DataTable();
+            
             table.on( 'draw', function () {
                 setcheckbox(window.checkboxid);
                 checkcheckbox();
                 HideLoad();
             });
+            
             table.on( 'preDraw', function () {
                 ShowLoad();
             });
+            
             if(resize == 1){
                 $('#dataTableBuilder').resizableColumns();
             }
         });
 
-        function getTableCode(data)
-        {
+        function getTableCode(data) {
             var tbl  = document.createElement("table");
             tbl.className = "table table-sm table-striped";
             var tr = tbl.insertRow(-1);
@@ -38,8 +40,7 @@
                 var td = tr.insertCell();
                 td.appendChild(document.createTextNode(key.charAt(0).toUpperCase() + key.slice(1)));
             });
-            for (var i = 0; i < data.length; ++i)
-            {
+            for (var i = 0; i < data.length; ++i) {
                 var tr = tbl.insertRow();
                 $.each( data[i], function( key, value ) {
                     var td = tr.insertCell();
@@ -51,7 +52,7 @@
         
         function searchDateColumn(i){
             $('#columnid').val(i.id);
-            $('#dateModel').modal('show')
+            $('#dateModel').modal('show');
         }
 
         function dateRange(steps = 1) {
@@ -79,8 +80,9 @@
             }
 
             $('#'+$('#columnid').val()).val(dateArray.substring(0, dateArray.length-1)).change();
-            $('#dateModel').modal('hide')
+            $('#dateModel').modal('hide');
         }
+        
         var start = moment();
         var end = moment();
 
@@ -89,6 +91,7 @@
             $('#datefrommodel').val(start.format('DD-MM-YYYY'));
             $('#datetomodel').val(end.format('DD-MM-YYYY'));
         }
+        
         $('#reportrange').daterangepicker({
             startDate: start,
             endDate: end,
@@ -112,6 +115,7 @@
             }
             checkcheckbox();
         });
+        
         $(document).on("change", "#selectallcheckbox", function(e){
             var checkall = this.checked;
             $('.checkboxselect').each(function(i, obj) {
@@ -128,22 +132,23 @@
                 }
             });
         });
+        
         function addcheckboxid(checkboxid){
             window.checkboxid.push(checkboxid);
-            // console.log(window.checkboxid);
         }
+        
         function removecheckboxid(checkboxid){
             window.checkboxid = jQuery.grep(window.checkboxid, function(value) {
                 return value != checkboxid;
             });
-            // console.log(window.checkboxid);
         }
+        
         function setcheckbox(checkboxids){
-            // console.log(checkboxid);
             for (i = 0; i < checkboxids.length; ++i) {
                 $('input[class="checkboxselect"][checkboxid="'+checkboxids[i]+'"]').prop( "checked", true );
             }
         }
+        
         function checkcheckbox(){
             var checked = 0;
             var checkbox = $('.checkboxselect');
@@ -158,34 +163,236 @@
                 $('#selectallcheckbox').prop( "checked", false );
             }
         }
+
+        // ========== TASK STATUS MODAL FUNCTIONALITY ==========
+        $(document).ready(function() {
+            // Initialize modal functionality after DataTable is ready
+            setTimeout(function() {
+                initializeTaskModal();
+            }, 1000);
+            
+            // Re-initialize when DataTable is redrawn
+            $('#dataTableBuilder').on('draw.dt', function() {
+                setTimeout(function() {
+                    initializeTaskModal();
+                }, 500);
+            });
+        });
+
+        function initializeTaskModal() {
+            // Handle Complete button click
+            $(document).off('click', '.complete-task-btn').on('click', '.complete-task-btn', function() {
+                const taskId = $(this).data('task-id');
+                const taskNumber = $(this).data('task-number');
+                const currentStatus = $(this).data('current-status');
+                
+                // Set modal data
+                $('#modal_task_id').val(taskId);
+                $('#modal_task_number').text(taskNumber);
+                $('#modal_current_status').text(currentStatus);
+                
+                // Clear previous form data
+                $('#modal_status').val('2'); // Default to Completed
+                $('#modal_return_reason').val('');
+                $('#modal_return_remarks').val('');
+                $('#modal_signed_do_image').val('');
+                $('#modal_proof_of_delivery_image').val('');
+                
+                // Show/hide fields based on default status
+                toggleModalFields('2');
+                
+                // Show modal
+                $('#taskStatusModal').modal('show');
+            });
+            
+            // Handle status change in modal
+            $('#modal_status').off('change').on('change', function() {
+                const status = $(this).val();
+                toggleModalFields(status);
+            });
+            
+            // Toggle modal fields based on status
+            function toggleModalFields(status) {
+                const isCompleted = status === '2';
+                const isReturned = status === '3';
+                
+                // Toggle return reason field
+                if (isReturned) {
+                    $('#modal_return_reason_field').slideDown();
+                    $('#modal_return_reason').prop('required', true);
+                } else {
+                    $('#modal_return_reason_field').slideUp();
+                    $('#modal_return_reason').prop('required', false);
+                }
+                
+                // Toggle return remarks field
+                if (isReturned) {
+                    $('#modal_return_remarks_field').slideDown();
+                } else {
+                    $('#modal_return_remarks_field').slideUp();
+                }
+                
+                // Toggle image upload fields
+                if (isCompleted) {
+                    $('#modal_image_upload_fields').slideDown();
+                    $('#modal_signed_do_image').prop('required', true);
+                    $('#modal_proof_of_delivery_image').prop('required', true);
+                } else {
+                    $('#modal_image_upload_fields').slideUp();
+                    $('#modal_signed_do_image').prop('required', false);
+                    $('#modal_proof_of_delivery_image').prop('required', false);
+                }
+            }
+            
+            // Handle form submission
+            $('#taskStatusForm').off('submit').on('submit', function(e) {
+                e.preventDefault();
+                
+                const formData = new FormData(this);
+                const taskId = $('#modal_task_id').val();
+                const status = $('#modal_status').val();
+                
+                // Validation
+                if (status === '3' && !$('#modal_return_reason').val()) {
+                    alert('Return reason is required when marking task as returned.');
+                    return;
+                }
+                
+                if (status === '2') {
+                    const signedDoImage = $('#modal_signed_do_image').prop('files')[0];
+                    const proofImage = $('#modal_proof_of_delivery_image').prop('files')[0];
+                    
+                    if (!signedDoImage) {
+                        alert('Signed Delivery Order Image is required for Completed status.');
+                        return;
+                    }
+                    
+                    if (!proofImage) {
+                        alert('Proof of Delivery Image is required for Completed status.');
+                        return;
+                    }
+                }
+
+                // Show loading
+                ShowLoad();
+                
+                // Add CSRF token to form data
+                formData.append('_token', '{{ csrf_token() }}');
+                
+                // Submit form
+                $.ajax({
+                    url: "{{ route('tasks.updateStatusViaModal') }}",
+                    type: 'POST',
+                    data: formData,
+                    processData: false,
+                    contentType: false,
+                    success: function(response) {
+                        HideLoad();
+                        if (response.success) {
+                            noti('s', 'Success', response.message);
+                            $('#taskStatusModal').modal('hide');
+                            // Clear form
+                            $('#taskStatusForm')[0].reset();
+                            // Reload DataTable
+                            $('.buttons-reload').click();
+                        } else {
+                            noti('e', 'Error', response.message);
+                        }
+                    },
+                    error: function(xhr) {
+                        HideLoad();
+                        let errorMessage = 'An error occurred while updating task status.';
+                        if (xhr.responseJSON && xhr.responseJSON.message) {
+                            errorMessage = xhr.responseJSON.message;
+                        }
+                        noti('e', 'Error', errorMessage);
+                    }
+                });
+            });
+        }
     </script>
 @endpush
 
-<div class="modal fade" id="dateModel" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-sm modal-dialog-centered" role="document">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h5 class="modal-title" id="infoModelLabel">{{ __('tasks.select_a_date_range') }}</h5>
-          <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-            <span aria-hidden="true">&times;</span>
-          </button>
-        </div>
-        <div class="modal-body">
-            <input id="columnid" type="hidden" value="">
-            <input id="datefrommodel" type="hidden" value="">
-            <input id="datetomodel" type="hidden" value="">
-            <div class="form-group col-sm-12">
-                <label for="datefrommodel">{{ __('tasks.date') }}:</label>
-                <div id="reportrange" style="background: #fff; cursor: pointer; padding: 5px 10px; border: 1px solid #ccc; width: 100%">
-                    <i class="fa fa-calendar"></i>&nbsp;
-                    <span></span> <i class="fa fa-caret-down"></i>
-                </div>
+<!-- Modal for Complete/Return Action -->
+<div class="modal fade" id="taskStatusModal" tabindex="-1" role="dialog" aria-labelledby="taskStatusModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="taskStatusModalLabel">Update Delivery Order Status</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
             </div>
+            <form id="taskStatusForm" method="POST" enctype="multipart/form-data">
+                @csrf
+                <input type="hidden" name="task_id" id="modal_task_id" value="">
+                
+                <div class="modal-body">
+                    <div class="alert alert-info">
+                        <strong>#DO:</strong> <span id="modal_task_number"></span>
+                        <br>
+                        <strong>Current Status:</strong> <span id="modal_current_status"></span>
+                    </div>
+                    
+                    <!-- Status Selection -->
+                    <div class="form-group">
+                        <label for="modal_status">Update Status to :</label>
+                        <select name="status" id="modal_status" class="form-control" required>
+                            <option value="2">Completed</option>
+                            <option value="3">Returned</option>
+                        </select>
+                    </div>
+                    <small class="form-text text-muted">
+                        System will send notification to inform driver about the DO status has been updated
+                    </small>
+                    
+                    <!-- Return Reason Field (Initially Hidden) -->
+                    <div class="form-group" id="modal_return_reason_field" style="display: none;">
+                        <label for="modal_return_reason">Return Reason <span class="text-danger">*</span></label>
+                        <input type="text" name="return_reason" id="modal_return_reason" class="form-control" maxlength="255">
+                        <small class="form-text text-muted">Required when marking DO as returned</small>
+                    </div>
+                    
+                    <!-- Return Remarks Field (Initially Hidden) -->
+                    <div class="form-group" id="modal_return_remarks_field" style="display: none;">
+                        <label for="modal_return_remarks">Return Remarks</label>
+                        <input type="text" name="return_remarks" id="modal_return_remarks" class="form-control" maxlength="255">
+                        <small class="form-text text-muted">Additional notes about the return (optional)</small>
+                    </div>
+                    
+                    <!-- Image Upload Fields -->
+                    <div id="modal_image_upload_fields">
+                        <div class="card mt-3">
+                            <div class="card-header bg-success text-white">
+                                <h6 class="mb-0">📷 Upload Required Images</h6>
+                            </div>
+                            <div class="card-body">
+                                <!-- Signed DO Image Field -->
+                                <div class="form-group">
+                                    <label for="modal_signed_do_image">Signed Delivery Order Image <span class="text-danger">*</span></label>
+                                    <input type="file" name="signed_do_image" id="modal_signed_do_image" class="form-control-file" accept="image/*">
+                                    <small class="form-text text-muted">
+                                        Upload signed delivery order document<br>
+                                    </small>
+                                </div>
+                                
+                                <!-- Proof of Delivery Image Field -->
+                                <div class="form-group">
+                                    <label for="modal_proof_of_delivery_image">Proof of Delivery Image <span class="text-danger">*</span></label>
+                                    <input type="file" name="proof_of_delivery_image" id="modal_proof_of_delivery_image" class="form-control-file" accept="image/*">
+                                    <small class="form-text text-muted">
+                                        Upload location/proof of delivery photo<br>
+                                    </small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Update Status</button>
+                </div>
+            </form>
         </div>
-        <div class="modal-footer">
-            <button type="button" class="btn btn-primary" onclick="dateRange();">{{ __('tasks.search') }}</button>
-          <button type="button" class="btn btn-secondary" data-dismiss="modal">{{ __('tasks.close') }}</button>
-        </div>
-      </div>
     </div>
 </div>

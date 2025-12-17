@@ -156,14 +156,15 @@ Route::get('/clear-cache', function() {
     return 'Application cache has been cleared';
 });
 
-Route::get('/', [App\Http\Controllers\HomeController::class, 'index']);
-Route::get('/home', [App\Http\Controllers\HomeController::class, 'index'])->name('home');
+Route::get('/', [App\Http\Controllers\DeliveryOrderController::class, 'index']);
+Route::get('/home', [App\Http\Controllers\DeliveryOrderController::class, 'index'])->name('home');
 // Route::get('/archived', [App\Http\Controllers\ArcHomeController::class, 'index'])->name('home');
-
 // Route::get('/scheduler/updatedo', [App\Http\Controllers\scheduler::class, 'updateDoRate']);
 // Route::get('/scheduler/archiveddo', [App\Http\Controllers\scheduler::class, 'archivedDeliveryOrder']);
 Route::get('/scheduler/checklorryservice', [App\Http\Controllers\scheduler::class, 'checkLorryService']);
 Route::get('/scheduler/checkkelindanpermit', [App\Http\Controllers\scheduler::class, 'checkKelindanPermit']);
+Route::get('/customers/get-destination', [App\Http\Controllers\CustomerController::class, 'getDestination'])->name('customers.getDestination');
+Route::post('/trips/end-trip', [App\Http\Controllers\TripController::class, 'endTrip'])->name('trips.endTrip');
 
 // Route::group(['middleware' => ['role:admin']], function() {
 //     Route::resource('roles', App\Http\Controllers\RoleController::class);
@@ -180,108 +181,48 @@ Route::get('/scheduler/checkkelindanpermit', [App\Http\Controllers\scheduler::cl
 Route::group(['middleware' => ['auth']], function() {
     // Route::post('/home/getProductDelivered', [App\Http\Controllers\HomeController::class, 'getProductDelivered']);
     Route::post('/home/getTotalSales', [App\Http\Controllers\HomeController::class, 'getTotalSales']);
-    Route::post('/home/getTotalSalesQty', [App\Http\Controllers\HomeController::class, 'getTotalSalesQty']);
+Route::post('/home/getTotalSalesQty', [App\Http\Controllers\HomeController::class, 'getTotalSalesQty']);
     // Route::post('/home/getDriverPerformance', [App\Http\Controllers\HomeController::class, 'getDriverPerformance']);
     // Route::post('/home/getDriverList', [App\Http\Controllers\HomeController::class, 'getDriverList']);
     // Route::post('/home/getProductType', [App\Http\Controllers\HomeController::class, 'getProductType']);
     // Route::resource('saveviews', App\Http\Controllers\saveviewsController::class);
     // Route::post('/saveviews/massdestroy', [App\Http\Controllers\saveviewsController::class, 'massdestroy']);
     // Route::get('/saveviews/view/{id}', [App\Http\Controllers\saveviewsController::class, 'view'])->name('showview');
-    // Route::group(['middleware' => ['permission:deliveryorder']], function() {
-    //     Route::resource('deliveryOrders', App\Http\Controllers\DeliveryOrderController::class);
-    //     Route::post('/prices/getBillingRate', [App\Http\Controllers\PriceController::class, 'getBillingRate']);
-    //     Route::post('/deliveryOrders/getDriverInfo', [App\Http\Controllers\DeliveryOrderController::class, 'getDriverInfo']);
-    //     Route::post('/deliveryOrders/getDriverLorry', [App\Http\Controllers\DeliveryOrderController::class, 'getDriverLorry']);
-    //     Route::post('/deliveryOrders/getLorryInfo', [App\Http\Controllers\DeliveryOrderController::class, 'getLorryInfo']);
-    //     Route::post('/deliveryOrders/getClaimInfo', [App\Http\Controllers\DeliveryOrderController::class, 'getClaimInfo']);
-    //     Route::post('/deliveryOrders/getBillingRateInfo', [App\Http\Controllers\DeliveryOrderController::class, 'getBillingRateInfo']);
-    //     Route::post('/deliveryOrders/getCommissionRateInfo', [App\Http\Controllers\DeliveryOrderController::class, 'getCommissionRateInfo']);
-    //     Route::post('/deliveryOrders/getBillingRate', [App\Http\Controllers\DeliveryOrderController::class, 'getBillingRate']);
-    //     Route::post('/deliveryOrders/getCommissionRate', [App\Http\Controllers\DeliveryOrderController::class, 'getCommissionRate']);
-    //     Route::post('/items/getBillingRate', [App\Http\Controllers\ItemController::class, 'getBillingRate']);
-    //     Route::post('/items/getCommissionRate', [App\Http\Controllers\ItemController::class, 'getCommissionRate']);
-    //     Route::post('/deliveryOrders/massdestroy', [App\Http\Controllers\DeliveryOrderController::class, 'massdestroy']);
-    //     Route::post('/deliveryOrders/massupdatestatus', [App\Http\Controllers\DeliveryOrderController::class, 'massupdatestatus']);
-    //     Route::post('/deliveryOrders/masssave', [App\Http\Controllers\DeliveryOrderController::class, 'masssave']);
-    //     //Archived DeliveryOrder//
-    //     Route::get('/archived/deliveryOrders', [App\Http\Controllers\ArcDeliveryOrderController::class, 'index']);
-    //     Route::get('/archived/deliveryOrders/index', [App\Http\Controllers\ArcDeliveryOrderController::class, 'index']);
-    //     Route::get('/archived/deliveryOrders/{id}', [App\Http\Controllers\ArcDeliveryOrderController::class, 'show']);
-    //     Route::post('/archived/deliveryOrders/getClaimInfo', [App\Http\Controllers\ArcDeliveryOrderController::class, 'getClaimInfo']);
-    //     //Archived DeliveryOrder//
-    // });
-    // Route::group(['middleware' => ['permission:loan']], function() {
-    //     Route::resource('loans', App\Http\Controllers\LoanController::class);
-    //     Route::post('loans/{loan}/start', [App\Http\Controllers\LoanController::class, 'start'])->name('loans.start');
-    //     Route::post('/loanPayment/getPaymentDetails', [App\Http\Controllers\LoanpaymentController::class, 'getPaymentDetails']);
-    //     Route::post('/loans/masssave', [App\Http\Controllers\LoanController::class, 'masssave']);
-    // });
-    // Route::group(['middleware' => ['permission:loanpayment']], function() {
-    //     Route::resource('loanpayments', App\Http\Controllers\LoanpaymentController::class);
-    //     Route::post('/loanpayments/massdestroy', [App\Http\Controllers\LoanpaymentController::class, 'massdestroy']);
-    //     Route::post('/loanpayments/massupdatestatus', [App\Http\Controllers\LoanpaymentController::class, 'massupdatestatus']);
-    //     Route::post('/loanpayments/masssave', [App\Http\Controllers\LoanpaymentController::class, 'masssave']);
-    // });
-    // Route::group(['middleware' => ['permission:paymentdetail']], function() {
-    //     Route::resource('paymentdetails', App\Http\Controllers\paymentdetailController::class);
-    //     Route::post('/paymentdetails/massgenerate', [App\Http\Controllers\paymentdetailController::class, 'massgenerate']);
-    //     Route::post('/paymentdetails/generate', [App\Http\Controllers\paymentdetailController::class, 'generate']);
-    //     Route::post('/paymentdetails/getGenerateDetails', [App\Http\Controllers\paymentdetailController::class, 'getGenerateDetails']);
-    //     Route::post('/paymentdetails/massdestroy', [App\Http\Controllers\paymentdetailController::class, 'massdestroy']);
-    //     Route::post('/paymentdetails/masssave', [App\Http\Controllers\paymentdetailController::class, 'masssave']);
-    // });
-    // Route::group(['middleware' => ['permission:compound']], function() {
-    //     Route::resource('compounds', App\Http\Controllers\CompoundController::class);
-    //     Route::post('/compounds/massdestroy', [App\Http\Controllers\CompoundController::class, 'massdestroy']);
-    //     Route::post('/compounds/massupdatestatus', [App\Http\Controllers\CompoundController::class, 'massupdatestatus']);
-    //     Route::post('/compounds/masssave', [App\Http\Controllers\CompoundController::class, 'masssave']);
-    //     Route::post('/compounds/getLorryPermitHolder', [App\Http\Controllers\CompoundController::class, 'getLorryPermitHolder']);
-    // });
-    // Route::group(['middleware' => ['permission:advance']], function() {
-    //     Route::resource('advances', App\Http\Controllers\AdvanceController::class);
-    //     Route::post('/advances/massdestroy', [App\Http\Controllers\AdvanceController::class, 'massdestroy']);
-    //     Route::post('/advances/massupdatestatus', [App\Http\Controllers\AdvanceController::class, 'massupdatestatus']);
-    //     Route::post('/advances/masssave', [App\Http\Controllers\AdvanceController::class, 'masssave']);
-    // });
-    // Route::group(['middleware' => ['permission:claim']], function() {
-    //     Route::resource('claims', App\Http\Controllers\ClaimController::class);
-    //     Route::post('/claims/getDOList', [App\Http\Controllers\ClaimController::class, 'getDOList']);
-    //     Route::post('/claims/massdestroy', [App\Http\Controllers\ClaimController::class, 'massdestroy']);
-    //     Route::post('/claims/massupdatestatus', [App\Http\Controllers\ClaimController::class, 'massupdatestatus']);
-    //     Route::post('/claims/masssave', [App\Http\Controllers\ClaimController::class, 'masssave']);
-    // });
-    // Route::group(['middleware' => ['permission:bonus']], function() {
-    //     Route::resource('bonuses', App\Http\Controllers\BonusController::class);
-    //     Route::post('/bonuses/massdestroy', [App\Http\Controllers\BonusController::class, 'massdestroy']);
-    //     Route::post('/bonuses/massupdatestatus', [App\Http\Controllers\BonusController::class, 'massupdatestatus']);
-    //     Route::post('/bonuses/masssave', [App\Http\Controllers\BonusController::class, 'masssave']);
-    // });
-    // Route::group(['middleware' => ['permission:price']], function() {
-    //     Route::resource('prices', App\Http\Controllers\PriceController::class);
-    //     Route::post('/prices/massdestroy', [App\Http\Controllers\PriceController::class, 'massdestroy']);
-    //     Route::post('/prices/massupdatestatus', [App\Http\Controllers\PriceController::class, 'massupdatestatus']);
-    //     Route::post('/prices/masssave', [App\Http\Controllers\PriceController::class, 'masssave']);
-    // });
-    // Route::group(['middleware' => ['permission:item']], function() {
-    //     Route::resource('items', App\Http\Controllers\ItemController::class);
-    //     Route::post('/items/massdestroy', [App\Http\Controllers\ItemController::class, 'massdestroy']);
-    //     Route::post('/items/massupdatestatus', [App\Http\Controllers\ItemController::class, 'massupdatestatus']);
-    //     Route::post('/items/masssave', [App\Http\Controllers\ItemController::class, 'masssave']);
-    // });
-    // Route::group(['middleware' => ['permission:location']], function() {
-    //     Route::resource('locations', App\Http\Controllers\LocationController::class);
-    //     Route::post('/locations/massdestroy', [App\Http\Controllers\LocationController::class, 'massdestroy']);
-    //     Route::post('/locations/massupdatestatus', [App\Http\Controllers\LocationController::class, 'massupdatestatus']);
-    //     Route::post('/locations/masssave', [App\Http\Controllers\LocationController::class, 'masssave']);
-    // });
-    // Route::group(['middleware' => ['permission:vendor']], function() {
-    //     Route::resource('vendors', App\Http\Controllers\VendorController::class);
-    //     Route::post('/vendors/massdestroy', [App\Http\Controllers\VendorController::class, 'massdestroy']);
-    //     Route::post('/vendors/massupdatestatus', [App\Http\Controllers\VendorController::class, 'massupdatestatus']);
-    //     Route::post('/vendors/masssave', [App\Http\Controllers\VendorController::class, 'masssave']);
-    //     Route::get('/reports/vendoroneview/{id}/{datefrom}/{dateto}', [App\Http\Controllers\ReportController::class, 'vendoroneview'])->name('vendoroneview');
-    //     Route::get('/reports/getVendoroneviewPDF/{id}/{datefrom}/{dateto}/{function}', [App\Http\Controllers\ReportController::class, 'getVendoroneviewPDF'])->name('getVendoroneviewPDF');
-    // });
+    Route::group(['middleware' => ['permission:deliveryorder']], function() {
+        Route::post('deliveryOrders/approve/{id}', [App\Http\Controllers\DeliveryOrderController::class, 'approve'])->name('deliveryOrders.approve');
+        Route::resource('deliveryOrders', App\Http\Controllers\DeliveryOrderController::class);
+        Route::post('/deliveryOrders/getDriverInfo', [App\Http\Controllers\DeliveryOrderController::class, 'getDriverInfo']);
+        Route::post('/deliveryOrders/getDriverLorry', [App\Http\Controllers\DeliveryOrderController::class, 'getDriverLorry']);
+        Route::post('/deliveryOrders/getLorryInfo', [App\Http\Controllers\DeliveryOrderController::class, 'getLorryInfo']);
+        Route::post('/deliveryOrders/getClaimInfo', [App\Http\Controllers\DeliveryOrderController::class, 'getClaimInfo']);
+        Route::post('/deliveryOrders/getBillingRateInfo', [App\Http\Controllers\DeliveryOrderController::class, 'getBillingRateInfo']);
+        Route::post('/deliveryOrders/getCommissionRateInfo', [App\Http\Controllers\DeliveryOrderController::class, 'getCommissionRateInfo']);
+        Route::post('/deliveryOrders/getBillingRate', [App\Http\Controllers\DeliveryOrderController::class, 'getBillingRate']);
+        Route::post('/deliveryOrders/getCommissionRate', [App\Http\Controllers\DeliveryOrderController::class, 'getCommissionRate']);
+        Route::post('/items/getBillingRate', [App\Http\Controllers\ItemController::class, 'getBillingRate']);
+        Route::post('/items/getCommissionRate', [App\Http\Controllers\ItemController::class, 'getCommissionRate']);
+        Route::post('/deliveryOrders/massdestroy', [App\Http\Controllers\DeliveryOrderController::class, 'massdestroy']);
+        Route::post('/deliveryOrders/massupdatestatus', [App\Http\Controllers\DeliveryOrderController::class, 'massupdatestatus']);
+        Route::post('/deliveryOrders/masssave', [App\Http\Controllers\DeliveryOrderController::class, 'masssave']);
+        // Route::post('/delivery-orders/save-google-location', [App\Http\Controllers\DeliveryOrderController::class, 'saveGoogleLocation'])->name('deliveryOrders.saveGoogleLocation');
+        Route::get('/deliveryOrders/print/{id}/{task_id?}', [App\Http\Controllers\DeliveryOrderController::class, 'print'])->name('deliveryOrders.print');
+        Route::post('tasks/get-task-images', [App\Http\Controllers\DeliveryOrderController::class, 'getTaskImages'])->name('deliveryOrders.getTaskImages');
+        Route::get('delivery-orders/get-next-do-number', [App\Http\Controllers\DeliveryOrderController::class, 'getNextDONumber'])->name('deliveryOrders.getNextDONumber');
+        //Archived DeliveryOrder//
+        Route::get('/archived/deliveryOrders', [App\Http\Controllers\ArcDeliveryOrderController::class, 'index']);
+        Route::get('/archived/deliveryOrders/index', [App\Http\Controllers\ArcDeliveryOrderController::class, 'index']);
+        Route::get('/archived/deliveryOrders/{id}', [App\Http\Controllers\ArcDeliveryOrderController::class, 'show']);
+        Route::post('/archived/deliveryOrders/getClaimInfo', [App\Http\Controllers\ArcDeliveryOrderController::class, 'getClaimInfo']);
+        //Archived DeliveryOrder//    
+    });
+    Route::group(['middleware' => ['permission:machinerental']], function() {
+        Route::resource('machineRentals', App\Http\Controllers\MachineRentalController::class);
+        Route::post('/machine-rentals/get-next-rental-number', [App\Http\Controllers\MachineRentalController::class, 'getNextRentalNumber'])->name('machineRentals.getNextRentalNumber');
+        Route::post('/machineRentals/massdestroy', [App\Http\Controllers\MachineRentalController::class, 'massdestroy']);
+        Route::post('/machineRentals/massupdatestatus', [App\Http\Controllers\MachineRentalController::class, 'massupdatestatus']);
+        Route::post('/machineRentals/masssave', [App\Http\Controllers\MachineRentalController::class, 'masssave']);
+        Route::get('/machineRentals/print/{id}', [App\Http\Controllers\MachineRentalController::class, 'print'])->name('machineRentals.print');
+    });
     Route::group(['middleware' => ['permission:report']], function() {
         Route::resource('reports', App\Http\Controllers\ReportController::class);
         Route::post('/reports/run', [App\Http\Controllers\ReportController::class, 'run']);
@@ -289,6 +230,7 @@ Route::group(['middleware' => ['auth']], function() {
         Route::get('/report/sellerinformationrecord', [App\Http\Controllers\ReportController::class, 'seller_information_record'])->name('seller_information_record');
         Route::get('/report/customerstatementofaccount', [App\Http\Controllers\ReportController::class, 'customer_statement_of_account'])->name('customer_statement_of_account');
         Route::get('/report/daily_sales_report_excel', [App\Http\Controllers\ReportController::class, 'daily_sales_report_excel'])->name('daily_sales_report_excel');
+        Route::get('/report/late_delivery_report', [App\Http\Controllers\ReportController::class, 'late_delivery_report'])->name('late_delivery_report');
 
     });
     // Route::group(['middleware' => ['permission:report|paymentdetail']], function() {
@@ -398,6 +340,7 @@ Route::group(['middleware' => ['auth']], function() {
         Route::resource('invoiceDetails', App\Http\Controllers\InvoiceDetailController::class);
         Route::post('/invoiceDetails/massdestroy', [App\Http\Controllers\InvoiceDetailController::class, 'massdestroy']);
         //Invoice Payment
+        Route::get('/invoicePayments/customer-invoices/{id}', [App\Http\Controllers\InvoicePaymentController::class, 'getcustomerinvoice']);
         Route::post('invoicePayments/updatepayment/{id}', [App\Http\Controllers\InvoicePaymentController::class, 'updatepayment']);
         Route::get('invoicePayments/getpayment/{id}', [App\Http\Controllers\InvoicePaymentController::class, 'getpayment']);
         Route::get('invoicePayments/getinvoice/{id}', [App\Http\Controllers\InvoicePaymentController::class, 'getinvoice']);
@@ -410,12 +353,20 @@ Route::group(['middleware' => ['auth']], function() {
 
     });
     Route::group(['middleware' => ['permission:task']], function() {
+        Route::get('tasks/download-image/{type}/{taskId}', [TaskController::class, 'downloadImage'])->name('tasks.downloadImage');
         Route::resource('tasks', App\Http\Controllers\TaskController::class);
+        Route::post('/tasks/get-delivery-order-details', [App\Http\Controllers\TaskController::class, 'getDeliveryOrderDetails'])->name('tasks.getDeliveryOrderDetails');
         Route::resource('taskTransfers', App\Http\Controllers\TaskTransferController::class);
+        Route::post('/tasks/get-next-task-number', [App\Http\Controllers\TaskController::class, 'getNextTaskNumber'])->name('tasks.getNextTaskNumber');
+        Route::post('tasks/update-status-via-modal', [App\Http\Controllers\TaskController::class, 'updateStatusViaModal'])->name('tasks.updateStatusViaModal');
     });
     Route::group(['middleware' => ['permission:trip']], function() {
         Route::resource('trips', App\Http\Controllers\TripController::class);
 
+    });
+    Route::group(['middleware' => ['permission:checkin']], function() {
+        Route::resource('checkins', App\Http\Controllers\CheckInController::class);
+        Route::get('/checkins/{id}/details', [App\Http\Controllers\CheckInController::class, 'getDetails'])->name('checkins.details');
     });
     Route::group(['middleware' => ['permission:inventorybalance']], function() {
         Route::get('/inventoryBalances', [App\Http\Controllers\InventoryBalanceController::class, 'index'])->name('inventoryBalances.index');

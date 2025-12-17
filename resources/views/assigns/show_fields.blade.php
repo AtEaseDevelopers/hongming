@@ -10,16 +10,10 @@
     <p>{{ $assign->driver->name }}</p>
 </div>
 
-<!-- Customer Code Field -->
+<!-- Delivery Order Field -->
 <div class="form-group">
-    {!! Form::label('customer_id', __('assign.customer_code')) !!}:
-    <p>{{ $assign->customer->code }}</p>
-</div>
-
-<!-- Customer Company Field -->
-<div class="form-group">
-    {!! Form::label('customer_id', __('assign.customer_company')) !!}:
-    <p>{{ $assign->customer->company }}</p>
+    {!! Form::label('delivery_order_id', __('Delivery Order')) !!}:
+    <p>{{ $assign->deliveryOrder->dono }}</p>
 </div>
 
 <!-- Sequence Field -->

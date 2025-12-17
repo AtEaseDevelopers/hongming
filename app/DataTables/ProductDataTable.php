@@ -18,7 +18,14 @@ class ProductDataTable extends DataTable
     {
         $dataTable = new EloquentDataTable($query);
 
-        return $dataTable->addColumn('action', 'products.datatables_actions');
+        return $dataTable
+            ->addColumn('action', 'products.datatables_actions')
+            ->editColumn('type', function ($product) {
+                return $product->type_label;
+            })
+            ->editColumn('status', function ($product) {
+                return $product->status_label;
+            });
     }
 
     /**
@@ -39,6 +46,22 @@ class ProductDataTable extends DataTable
      */
     public function html()
     {
+        // Get the type options from the Product model
+        $typeOptions = Product::$type;
+        $statusOptions = Product::$status;
+        
+        // Build the options HTML for the type filter
+        $typeOptionsHtml = '';
+        foreach ($typeOptions as $value => $label) {
+            $typeOptionsHtml .= '<option value="' . $value . '">' . $label . '</option>';
+        }
+
+        // Build the options HTML for the status filter
+        $statusOptionsHtml = '';
+        foreach ($statusOptions as $value => $label) {
+            $statusOptionsHtml .= '<option value="' . $value . '">' . $label . '</option>';
+        }
+
         return $this->builder()
             ->columns($this->getColumns())
             ->minifiedAjax()
@@ -110,24 +133,7 @@ class ProductDataTable extends DataTable
                         'visible' => true,
                         'render' => 'function(data, type){return "<input type=\'checkbox\' class=\'checkboxselect\' checkboxid=\'"+data+"\'/>";}'
                     ],
-                    [
-                    'targets' => 4,
-                    'render' => 'function(data, type){
-                            if (data == 1) {
-                                return "Coffee";
-                            } else if (data == 2) {
-                                return "Tea";
-                            } else if (data == 3) {
-                                return "Cocoa";
-                            } else if (data == 0) {
-                                return "Ice";
-                            }
-                        }'
-                    ],
-                    [
-                    'targets' => 5,
-                    'render' => 'function(data, type){return data == 1 ? "Active" : "Unactive";}'
-                    ],
+                   
                 ],
                 'initComplete' => 'function(){
                     var columns = this.api().init().columns;
@@ -137,9 +143,9 @@ class ProductDataTable extends DataTable
                         var column = this;
                         if(columns[index].searchable){
                             if(columns[index].title == \'Status\'){
-                                var input = \'<select class="border-0" style="width: 100%;"><option value="1">Active</option><option value="0">Unactive</option></select>\';
+                                var input = \'<select class="border-0" style="width: 100%;"><option value="">All Status</option>' . $statusOptionsHtml . '</select>\';
                             }else if(columns[index].title == \'Type\'){
-                                var input = \'<select class="border-0" style="width: 100%;"><option value="0">Ice</option></select>\';
+                                var input = \'<select class="border-0" style="width: 100%;"><option value="">All Types</option>' . $typeOptionsHtml . '</select>\';
                             }else if(columns[index].title == \'1st Vaccine Date\'){
                                 var input = \'<input type="text" id="\'+index+\'Date" onclick="searchDateColumn(this);" placeholder="Search ">\';
                             }else if(columns[index].title == \'2nd Vaccine Date\'){
@@ -173,8 +179,8 @@ class ProductDataTable extends DataTable
 
             'code',
             'name',
-            'price',
             'type',
+            'countdown',
             'status'
         ];
     }

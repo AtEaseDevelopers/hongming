@@ -18,7 +18,7 @@ class AssignRepository extends BaseRepository
      */
     protected $fieldSearchable = [
         'driver_id',
-        'customer_id',
+        'assignRepository',
         'sequence'
     ];
 

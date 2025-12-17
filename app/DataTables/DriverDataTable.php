@@ -163,12 +163,18 @@ class DriverDataTable extends DataTable
             'data' => 'password',
             'name' => 'drivers.password']),*/
 
-
             'name'=> new \Yajra\DataTables\Html\Column(['title' =>  trans('drivers.name'),
             'data' => 'name',
             'name' => 'drivers.name']),
-            trans('drivers.ic'),
-            trans('drivers.phone'),
+
+            'ic'=> new \Yajra\DataTables\Html\Column(['title' =>  trans('drivers.ic'),
+            'data' => 'ic',
+            'name' => 'drivers.ic']),
+            
+            'phone'=> new \Yajra\DataTables\Html\Column(['title' =>  trans('drivers.phone'),
+            'data' => 'phone',
+            'name' => 'drivers.phone']),
+
             // 'commissionrate'=> new \Yajra\DataTables\Html\Column(['title' => 'Commission Rate',
             // 'data' => 'commissionrate',
             // 'name' => 'commissionrate']),

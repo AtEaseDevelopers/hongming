@@ -173,9 +173,19 @@ class InventoryTransferDataTable extends DataTable
             'data' => 'product.name',
             'name' => 'product.name']),
 
-            trans('inventory_transfers.quantity'),
-            trans('inventory_transfers.status'),
-            trans('inventory_transfers.remark'),
+
+            'quantity'=> new \Yajra\DataTables\Html\Column(['title' => trans('inventory_transfers.quantity'),
+            'data' => 'quantity',
+            'name' => 'quantity']),
+
+            'status'=> new \Yajra\DataTables\Html\Column(['title' => trans('inventory_transfers.status'),
+            'data' => 'status',
+            'name' => 'status']),
+
+            'remark'=> new \Yajra\DataTables\Html\Column(['title' => trans('inventory_transfers.remark'),
+            'data' => 'remark',
+            'name' => 'remark']),
+
         ];
     }
 

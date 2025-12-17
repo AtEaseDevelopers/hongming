@@ -5,6 +5,7 @@ namespace App\Http\Requests;
 use Illuminate\Foundation\Http\FormRequest;
 use App\Models\DeliveryOrder;
 use Illuminate\Support\Facades\Crypt;
+use Illuminate\Support\Facades\Auth;
 
 class UpdateDeliveryOrderRequest extends FormRequest
 {
@@ -25,35 +26,38 @@ class UpdateDeliveryOrderRequest extends FormRequest
      */
     public function rules()
     {
-        $id = $this->route('deliveryOrder');        
+        $userRole = Auth::user()->roles()->pluck('name')->first();
+        $isAdmin = $userRole === 'admin';
+
         $rules = [
-            // 'dono' => 'required|string|max:255|unique:deliveryorders,dono,'.Crypt::decrypt($id),
+            'date' => 'required|date',
             'dono' => 'required|string|max:255',
-            'date' => 'required',
-            'driver_id' => 'required',
-            'lorry_id' => 'required',
-            'vendor_id' => 'required',
-            'source_id' => 'required',
-            'destinate_id' => 'required',
-            'item_id' => 'required',
-            'weight' => 'required|numeric',
-            'shipweight' => 'nullable|numeric',
-            // 'billingrate' => 'required|numeric',
-            // 'commissionrate' => 'required|numeric',
-            // 'fees' => 'required|numeric',
-            // 'tol' => 'required|numeric',
-            'status' => 'required',
-            'STR_UDF1' => 'nullable|string',
-            'STR_UDF2' => 'nullable|string',
-            'STR_UDF3' => 'nullable|string',
-            'INT_UDF1' => 'nullable|integer',
-            'INT_UDF2' => 'nullable|integer',
-            'INT_UDF3' => 'nullable|integer',
-            'created_at' => 'nullable',
-            'updated_at' => 'nullable',
-            'deleted_at' => 'nullable'
+            'place_name' => 'required|string|max:255',
+            'place_address' => 'required|string|max:255',
+            'place_latitude' => 'required|numeric',
+            'place_longitude' => 'required|numeric',
+            'customer_id' => 'required|exists:customers,id',
+            'product_id' => 'required|exists:products,id',
+            'company_id' => 'required|exists:companies,id',
+            'total_order' => 'required|integer',
+            'progress_total' => 'nullable|integer',
+            'strength_at' => 'nullable|string|max:255',
+            'slump' => 'nullable|string|max:255',
+            'remark' => 'nullable|string|max:255',
+            'status' => 'sometimes|in:0,1,2,3,4,5,6,7',
         ];
 
+        if (!$isAdmin) {
+            $rules['status'] = 'required|in:0,2,3,4,5,6,7'; // Exclude status 2
+        }
+
         return $rules;
+    }
+
+    public function messages()
+    {
+        return [
+            'status.in' => 'You are not authorized to set status to ready to deliver. Please contact admin.',
+        ];
     }
 }

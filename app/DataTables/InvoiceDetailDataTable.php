@@ -54,11 +54,11 @@ class InvoiceDetailDataTable extends DataTable
                 'order'     => [[1, 'desc']],
                 'lengthMenu' => [[ 10, 50, 100, 300 ],[ '10 rows', '50 rows', '100 rows', '300 rows' ]],
                 'buttons' => [
-                    [
-                        'extend' => 'create',
-                        'className' => 'btn btn-default btn-sm no-corner',
-                        'text' => '<i class="fa fa-plus"></i> ' . trans('table_buttons.create'),
-                    ],
+                    // [
+                    //     'extend' => 'create',
+                    //     'className' => 'btn btn-default btn-sm no-corner',
+                    //     'text' => '<i class="fa fa-plus"></i> ' . trans('table_buttons.create'),
+                    // ],
                     [
                         'extend' => 'print',
                         'className' => 'btn btn-default btn-sm no-corner',
@@ -160,14 +160,22 @@ class InvoiceDetailDataTable extends DataTable
             'data' => 'product.name',
             'name' => 'product.name']),
 
-            trans('invoice_details.quantity'),
-            trans('invoice_details.price'),
+            'quantity'=> new \Yajra\DataTables\Html\Column(['title' =>  trans('invoice_details.quantity'),
+            'data' => 'quantity',
+            'name' => 'product.quantity']),
+
+            'price'=> new \Yajra\DataTables\Html\Column(['title' =>  trans('invoice_details.price'),
+            'data' => 'price',
+            'name' => 'product.price']),
 
             'totalprice'=> new \Yajra\DataTables\Html\Column(['title' => trans('invoice_details.total_price'),
             'data' => 'totalprice',
             'name' => 'totalprice']),
 
-            trans('invoice_details.remark'),
+            'remark'=> new \Yajra\DataTables\Html\Column(['title' => trans('invoice_details.remark'),
+            'data' => 'totalprice',
+            'name' => 'remark']),
+
         ];
     }
 

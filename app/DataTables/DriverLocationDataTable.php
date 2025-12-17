@@ -16,16 +16,20 @@ class DriverLocationDataTable extends DataTable
      */
     public function dataTable($query)
     {
-        $dataTable = new EloquentDataTable($query);
+          $dataTable = new EloquentDataTable($query);
     
         return $dataTable->addColumn('check_id', function ($row) {
-            return '<input type="checkbox" class="checkbox-select" 
-                        value="' . $row->driver->id . '"
+            return '<input type="checkbox" class="checkbox-select driver-checkbox" 
+                        value="' . $row->driver_id . '" 
+                        data-driver-id="' . $row->driver_id . '"
                         data-driver-name="' . htmlspecialchars($row->driver->name) . '"
                         data-latitude="' . $row->latitude . '"
                         data-longitude="' . $row->longitude . '"
-                        data-kelindan-name="' . htmlspecialchars(optional($row->kelindan)->name) . '"
-                        data-lorryno="' . htmlspecialchars($row->lorry->lorryno) . '">';
+                        data-lorryno="' . htmlspecialchars($row->lorry->lorryno) . '"
+                        data-date="' . ($row->date ? $row->date->format('d-m-Y H:i:s') : '') . '">';
+        })
+        ->editColumn('date', function ($row) {
+            return $row->date ? $row->date->format('d-m-Y H:i:s') : '';
         })
         ->rawColumns(['check_id']) // Ensure HTML is rendered correctly for this column
         ->addColumn('action', 'driver_locations.datatables_actions');
@@ -41,10 +45,10 @@ class DriverLocationDataTable extends DataTable
     public function query(DriverLocation $model)
     {
         return $model->newQuery()
-        ->with('driver:id,name')
-        ->with('kelindan:id,name')
-        ->with('lorry:id,lorryno')
-        ->select('driver_location.*');
+            ->with('driver:id,name')
+            ->with('lorry:id,lorryno')
+            ->select('driver_location.*')
+            ->orderBy('created_at', 'desc');
     }
 
     /**
@@ -151,6 +155,38 @@ class DriverLocationDataTable extends DataTable
                             })
                         }
                     });
+
+                    // Add checkbox restriction logic
+                    $(document).on("change", ".driver-checkbox", function() {
+                        var driverId = $(this).data("driver-id");
+                        var isChecked = $(this).is(":checked");
+                        
+                        if (isChecked) {
+                            // Uncheck all other checkboxes for the same driver
+                            $(".driver-checkbox[data-driver-id=\'" + driverId + "\']").not(this).prop("checked", false);
+                        }
+                    });
+
+                    // Select all functionality
+                    $("#selectAll").on("change", function() {
+                        var isChecked = $(this).is(":checked");
+                        var checkedDrivers = [];
+                        
+                        $(".driver-checkbox").each(function() {
+                            var driverId = $(this).data("driver-id");
+                            
+                            // If we haven\'t encountered this driver yet, check it
+                            if (isChecked && !checkedDrivers.includes(driverId)) {
+                                $(this).prop("checked", true);
+                                checkedDrivers.push(driverId);
+                            } else if (!isChecked) {
+                                $(this).prop("checked", false);
+                            } else {
+                                // If we already have this driver, uncheck this duplicate
+                                $(this).prop("checked", false);
+                            }
+                        });
+                    });
                 }'
             ]);
     }
@@ -179,11 +215,7 @@ class DriverLocationDataTable extends DataTable
                 'data' => 'driver.name',
                 'name' => 'driver.name',
             ]),
-            'kelindan_id' => new \Yajra\DataTables\Html\Column([
-                'title' =>  trans('driver_locations.kelindan'),
-                'data' => 'kelindan.name',
-                'name' => 'kelindan.name',
-            ]),
+           
             'lorry_id' => new \Yajra\DataTables\Html\Column([
                 'title' =>  trans('driver_locations.lorry'),
                 'data' => 'lorry.lorryno',
@@ -193,8 +225,6 @@ class DriverLocationDataTable extends DataTable
              trans('driver_locations.longitude'),
         ];
     }
-
-
 
     /**
      * Get filename for export.
@@ -206,6 +236,3 @@ class DriverLocationDataTable extends DataTable
         return 'driver_locations_datatable_' . time();
     }
 }
-
-
-?>

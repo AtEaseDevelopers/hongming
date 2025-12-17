@@ -1,7 +1,7 @@
 <!-- Product Id Field -->
 <div class="form-group col-sm-6"><span class="asterisk"> *</span>
     {!! Form::label('product_id', __('special_prices.product')) !!}
-    {!! Form::select('product_id', $productItems, null, ['class' => 'form-control', 'placeholder' => 'Pick a Product...','autofocus']) !!}
+    {!! Form::select('product_id', $productItems, null, ['class' => 'form-control select2-product', 'placeholder' => 'Pick a Product...', 'autofocus']) !!}
 </div>
 
 <!-- Customer Id Field -->
@@ -38,10 +38,31 @@
                 $('form a.btn-secondary')[0].click();
             }
         });
+        
         $(document).ready(function () {
+            // Initialize Select2 for product field
+            $('.select2-product').select2({
+                placeholder: "Search for a product...",
+                allowClear: true,
+                width: '100%'
+            });
+            
             HideLoad();
         });
     </script>
+    
+    <style>
+        /* Optional: Add some styling to make Select2 match your form style */
+        .select2-container--default .select2-selection--single {
+            border: 1px solid #ced4da;
+            border-radius: .25rem;
+            height: 38px;
+        }
+        .select2-container--default .select2-selection--single .select2-selection__rendered {
+            line-height: 36px;
+        }
+        .select2-container--default .select2-selection--single .select2-selection__arrow {
+            height: 36px;
+        }
+    </style>
 @endpush
-
-

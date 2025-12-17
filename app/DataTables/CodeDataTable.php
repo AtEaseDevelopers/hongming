@@ -92,7 +92,8 @@ class CodeDataTable extends DataTable
                     [
                         'extend' => 'colvis',
                         'className' => 'btn btn-default btn-sm no-corner',
-                        'text' => '<i class="fa fa-columns"></i> ' . trans('table_buttons.column')
+                        'text' => '<i class="fa fa-columns"></i> ' . trans('table_buttons.column'),
+                        'columns' => ':not(:first)' // This hides the first column (code) from colvis
                     ],
                     [
                         'extend' => 'pageLength',
@@ -101,8 +102,15 @@ class CodeDataTable extends DataTable
                     ],
                 ],
                 'columnDefs' => [
-                    'targets' => -1,
-                    'visible' => false
+                    [
+                        'targets' => 0, // Targets the first column (code)
+                        'visible' => false, // Hides it by default
+                        'searchable' => true // Still allows searching
+                    ],
+                    [
+                        'targets' => -1, // Action column
+                        'visible' => false
+                    ]
                 ],
                 'initComplete' => 'function(){
                     var columns = this.api().init().columns;

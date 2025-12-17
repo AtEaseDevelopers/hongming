@@ -28,6 +28,7 @@ class UpdateLorryRequest extends FormRequest
         $id = $this->route('lorry');
         $rules = [
             'lorryno' => 'required|string|max:255|unique:lorrys,lorryno,'.Crypt::decrypt($id),
+            'jpj_registration' => 'nullable|string|max:255',
             'status' => 'required',
             'remark' => 'nullable|string|max:255',
             'created_at' => 'nullable',

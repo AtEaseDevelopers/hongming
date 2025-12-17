@@ -14,12 +14,12 @@
     {!! Form::label('description', __('commission.product_type')) !!}
     {{ Form::select('description', [
         0 => __('commission.ice')
-    ], null, ['class' => 'form-control']) }}
+    ], null, ['class' => 'form-control select2-product', 'placeholder' => __('commission.select_product_type')]) }}
 </div>
 
 <!-- Value Field -->
 <div class="form-group col-sm-6">
-    {!! Form::label('value', __('commission.value')) !!}<span class="asterisk"> *</span>
+    {!! Form::label('value', __('commission.value')) !!} %<span class="asterisk"> *</span>
     {!! Form::text('value', null, ['class' => 'form-control']) !!}
 </div>
 
@@ -27,42 +27,6 @@
 <div class="form-group col-sm-6">
     {!! Form::hidden('sequence', '2', ['class' => 'form-control']) !!}
 </div>
-
-{{-- <!-- Str Udf1 Field -->
-<div class="form-group col-sm-6">
-    {!! Form::label('STR_UDF1', 'String UDF1:') !!}
-    {!! Form::text('STR_UDF1', null, ['class' => 'form-control']) !!}
-</div>
-
-<!-- Str Udf2 Field -->
-<div class="form-group col-sm-6">
-    {!! Form::label('STR_UDF2', 'String UDF2:') !!}
-    {!! Form::text('STR_UDF2', null, ['class' => 'form-control']) !!}
-</div>
-
-<!-- Str Udf3 Field -->
-<div class="form-group col-sm-6">
-    {!! Form::label('STR_UDF3', 'String UDF3:') !!}
-    {!! Form::text('STR_UDF3', null, ['class' => 'form-control']) !!}
-</div>
-
-<!-- Int Udf1 Field -->
-<div class="form-group col-sm-6">
-    {!! Form::label('INT_UDF1', 'Integer UDF1:') !!}
-    {!! Form::number('INT_UDF1', null, ['class' => 'form-control']) !!}
-</div>
-
-<!-- Int Udf2 Field -->
-<div class="form-group col-sm-6">
-    {!! Form::label('INT_UDF2', 'Integer UDF2:') !!}
-    {!! Form::number('INT_UDF2', null, ['class' => 'form-control']) !!}
-</div>
-
-<!-- Int Udf3 Field -->
-<div class="form-group col-sm-6">
-    {!! Form::label('INT_UDF3', 'Integer UDF3:') !!}
-    {!! Form::number('INT_UDF3', null, ['class' => 'form-control']) !!}
-</div> --}}
 
 <!-- Submit Field -->
 <div class="form-group col-sm-12">
@@ -78,7 +42,29 @@
             }
         });
         $(document).ready(function () {
+            // Initialize Select2 for product type field
+            $('.select2-product').select2({
+                placeholder: "Search for product type...",
+                allowClear: true,
+                width: '100%'
+            });
+            
             HideLoad();
         });
     </script>
+    
+    <style>
+        /* Style the Select2 dropdown to match your form */
+        .select2-container--default .select2-selection--single {
+            border: 1px solid #ced4da;
+            border-radius: .25rem;
+            height: 38px;
+        }
+        .select2-container--default .select2-selection--single .select2-selection__rendered {
+            line-height: 36px;
+        }
+        .select2-container--default .select2-selection--single .select2-selection__arrow {
+            height: 36px;
+        }
+    </style>
 @endpush

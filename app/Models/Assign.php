@@ -13,7 +13,6 @@ use Illuminate\Support\Carbon;
  * @version June 21, 2023, 6:30 pm +08
  *
  * @property integer $driver_id
- * @property integer $customer_id
  */
 class Assign extends Model
 {
@@ -30,7 +29,7 @@ class Assign extends Model
 
     public $fillable = [
         'driver_id',
-        'customer_id',
+        'delivery_order_id',
         'sequence'
     ];
 
@@ -42,7 +41,7 @@ class Assign extends Model
     protected $casts = [
         'id' => 'integer',
         'driver_id' => 'integer',
-        'customer_id' => 'integer',
+        'delivery_order_id' => 'integer',
         'sequence' => 'integer'
     ];
 
@@ -53,15 +52,15 @@ class Assign extends Model
      */
     public static $rules = [
         'driver_id' => 'required',
-        'customer_id' => 'required',
+        'delivery_order_id' => 'required',
         'sequence' => 'required',
         'created_at' => 'nullable|nullable',
         'updated_at' => 'nullable|nullable'
     ];
 
-    public function customer()
+    public function deliveryOrder()
     {
-        return $this->belongsTo(\App\Models\Customer::class, 'customer_id');
+        return $this->belongsTo(\App\Models\DeliveryOrder::class, 'delivery_order_id');
     }
 
     public function driver()

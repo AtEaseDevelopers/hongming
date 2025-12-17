@@ -25,17 +25,19 @@
                                     @php
                                         $scripts = '';
                                         foreach($reportdetails as $reportdetail){
+                                            $required = $reportdetail['name'] === 'p_agent' ? '' : 'required';
+                                            
                                             if($reportdetail['type'] == 'textbox'){
                                                 echo '<div class="form-group col-sm-6">
                                                         <label for="'.$reportdetail['name'].'">'.$reportdetail['title'].':</label>
-                                                        <span class="asterisk"> *</span>
-                                                        <input required class="form-control" name="'.$reportdetail['name'].'" type="text" id="'.$reportdetail['name'].'" value="'.$reportdetail['data'].'">
+                                                        '.($required ? '<span class="asterisk"> *</span>' : '').'
+                                                        <input '.$required.' class="form-control" name="'.$reportdetail['name'].'" type="text" id="'.$reportdetail['name'].'" value="'.$reportdetail['data'].'">
                                                     </div>';
                                             }else if($reportdetail['type'] == 'date'){
                                                 echo '<div class="form-group col-sm-6">
                                                         <label for="'.$reportdetail['name'].'">'.$reportdetail['title'].':</label>
-                                                        <span class="asterisk"> *</span>
-                                                        <input required class="form-control reportdate" id="'.$reportdetail['name'].'" name="'.$reportdetail['name'].'" type="text">
+                                                        '.($required ? '<span class="asterisk"> *</span>' : '').'
+                                                        <input '.$required.' class="form-control reportdate" id="'.$reportdetail['name'].'" name="'.$reportdetail['name'].'" type="text">
                                                     </div>';
                                             }else if($reportdetail['type'] == 'dropdown'){
                                                 $option = '';
@@ -49,8 +51,8 @@
                                                 }
                                                 echo '<div class="form-group col-sm-6">
                                                         <label for="'.$reportdetail['name'].'">'.$reportdetail['title'].':</label>
-                                                        <span class="asterisk"> *</span>
-                                                        <select required class="form-control selectpicker" id="'.$reportdetail['name'].'" name="'.$reportdetail['name'].'" tabindex="null" data-live-search="true">
+                                                        '.($required ? '<span class="asterisk"> *</span>' : '').'
+                                                        <select '.$required.' class="form-control selectpicker" id="'.$reportdetail['name'].'" name="'.$reportdetail['name'].'" tabindex="null" data-live-search="true">
                                                             <option value="">Pick a '.$reportdetail['name'].'...</option>
                                                             '.$option.'
                                                         </select>
@@ -68,9 +70,9 @@
                                                 }
                                                 echo '<div class="form-group col-sm-6">
                                                         <label for="'.$reportdetail['name'].'">'.$reportdetail['title'].':</label>
-                                                        <span class="asterisk"> *</span>
-                                                        <select required class="form-control selectpicker" id="'.$reportdetail['name'].'" name="'.$reportdetail['name'].'[]" tabindex="null" data-live-search="true" multiple>
-                                                            '.$all_option.';
+                                                        '.($required ? '<span class="asterisk"> *</span>' : '').'
+                                                        <select '.$required.' class="form-control selectpicker" id="'.$reportdetail['name'].'" name="'.$reportdetail['name'].'[]" tabindex="null" data-live-search="true" multiple>
+                                                            '.$all_option.'
                                                             '.$option.'
                                                         </select>
                                                     </div>';

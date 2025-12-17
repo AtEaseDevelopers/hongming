@@ -3,9 +3,9 @@
 @section('content')
     <ol class="breadcrumb">
       <li class="breadcrumb-item">
-         <a href="{!! route('companies.index') !!}">{{ __('companies.companies')}}</a>
+         <a href="{!! route('companies.index') !!}">{{ __('Branch')}}</a>
       </li>
-      <li class="breadcrumb-item active">{{ __('companies.create')}}</li>
+      <li class="breadcrumb-item active">{{ __('Create Branch')}}</li>
     </ol>
      <div class="container-fluid">
           <div class="animated fadeIn">
@@ -15,7 +15,7 @@
                         <div class="card">
                             <div class="card-header">
                                 <i class="fa fa-plus-square-o fa-lg"></i>
-                                <strong>{{ __('companies.create_company')}}</strong>
+                                <strong>{{ __('Create Branch')}}</strong>
                             </div>
                             <div class="card-body">
                                 {!! Form::open(['route' => 'companies.store']) !!}

@@ -1,7 +1,7 @@
 <!-- Product Id Field -->
 <div class="form-group col-sm-6">
     {!! Form::label('product_id', __('focs.product')) !!}<span class="asterisk"> *</span>
-    {!! Form::select('product_id', $productItems, null, ['class' => 'form-control', 'placeholder' => 'Pick a Product...','autofocus']) !!}
+    {!! Form::select('product_id', $productItems, null, ['class' => 'form-control select2-product', 'placeholder' => 'Pick a Product...','autofocus']) !!}
 </div>
 
 <!-- Customer Id Field -->
@@ -19,7 +19,7 @@
 <!-- Free Product Id Field -->
 <div class="form-group col-sm-6">
     {!! Form::label('free_product_id', __('focs.free_product')) !!}<span class="asterisk"> *</span>
-    {!! Form::select('free_product_id', $productItems, null, ['class' => 'form-control', 'placeholder' => 'Pick a Free Product...']) !!}
+    {!! Form::select('free_product_id', $productItems, null, ['class' => 'form-control select2-free-product', 'placeholder' => 'Pick a Free Product...']) !!}
 </div>
 
 <!-- Free Quantity Field -->
@@ -91,12 +91,43 @@
             }
         });
         $(document).ready(function () {
-             $('.select2-customer').select2({
+            // Initialize Select2 for customer field
+            $('.select2-customer').select2({
                 placeholder: "Search for a customer...",
                 allowClear: true,
                 width: '100%'
             });
+            
+            // Initialize Select2 for product field
+            $('.select2-product').select2({
+                placeholder: "Search for a product...",
+                allowClear: true,
+                width: '100%'
+            });
+            
+            // Initialize Select2 for free product field
+            $('.select2-free-product').select2({
+                placeholder: "Search for a free product...",
+                allowClear: true,
+                width: '100%'
+            });
+            
             HideLoad();
         });
     </script>
+    
+    <style>
+        /* Optional: Style the Select2 dropdowns to match your theme */
+        .select2-container--default .select2-selection--single {
+            border: 1px solid #ced4da;
+            border-radius: .25rem;
+            height: 38px;
+        }
+        .select2-container--default .select2-selection--single .select2-selection__rendered {
+            line-height: 36px;
+        }
+        .select2-container--default .select2-selection--single .select2-selection__arrow {
+            height: 36px;
+        }
+    </style>
 @endpush

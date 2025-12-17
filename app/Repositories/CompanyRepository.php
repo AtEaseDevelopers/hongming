@@ -24,7 +24,9 @@ class CompanyRepository extends BaseRepository
         'address2',
         'address3',
         'address4',
-        'group_id'
+        'do_prefix',
+        'machine_prefix',
+        'task_prefix'
     ];
 
     /**

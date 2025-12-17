@@ -161,7 +161,9 @@ class InventoryTransactionDataTable extends DataTable
             'data' => 'date',
             'name' => 'date']),
 
-            trans('inventory_transactions.type'),
+            'type'=> new \Yajra\DataTables\Html\Column(['title' => trans('inventory_transactions.type'),
+            'data' => 'type',
+            'name' => 'inventory_transactions.type']),
 
             'lorry_id'=> new \Yajra\DataTables\Html\Column(['title' => trans('inventory_transactions.lorry'),
             'data' => 'lorry.lorryno',
@@ -171,9 +173,17 @@ class InventoryTransactionDataTable extends DataTable
             'data' => 'product.name',
             'name' => 'product.name']),
 
-            trans('inventory_transactions.quantity'),
-            trans('inventory_transactions.remark'),
-            trans('inventory_transactions.user'),
+            'quantity'=> new \Yajra\DataTables\Html\Column(['title' => trans('inventory_transactions.quantity'),
+            'data' => 'quantity',
+            'name' => 'quantity']),
+
+            'remark'=> new \Yajra\DataTables\Html\Column(['title' => trans('inventory_transactions.remark'),
+            'data' => 'remark',
+            'name' => 'remark']),
+
+            'user'=> new \Yajra\DataTables\Html\Column(['title' => trans('inventory_transactions.user'),
+            'data' => 'user',
+            'name' => 'user']),
 
         ];
     }

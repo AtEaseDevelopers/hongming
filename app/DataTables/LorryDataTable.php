@@ -19,7 +19,19 @@ class LorryDataTable extends DataTable
     {
         $dataTable = new EloquentDataTable($query);
 
-        return $dataTable->addColumn('action', 'lorries.datatables_actions');
+        return $dataTable
+            ->addColumn('action', 'lorries.datatables_actions')
+            ->editColumn('status', function ($row) {
+                return $row->status == 1 ? 
+                    '<span class="badge badge-success">Active</span>' : 
+                    '<span class="badge badge-danger">Inactive</span>';
+            })
+            ->editColumn('in_use', function ($row) {
+                return $row->in_use == 1 ? 
+                    '<span class="badge badge-warning">In Use</span>' : 
+                    '<span class="badge badge-info">Available</span>';
+            })
+            ->rawColumns(['action', 'status', 'in_use']);
     }
 
     /**
@@ -30,45 +42,9 @@ class LorryDataTable extends DataTable
      */
     public function query(Lorry $model)
     {
+        // Start with a simple query first to test
         return $model->newQuery()
-        ->leftJoin(DB::raw('(select sd.lorry_id, DATE_FORMAT(sd.nextdate,"%d-%m-%Y") as "tyrenextdate" from servicedetails sd where sd.type = "Tyre" order by nextdate desc limit 1)tyre'), function($join)
-        {
-            $join->on('lorrys.id', '=', 'tyre.lorry_id');
-        })
-        ->leftJoin(DB::raw('(select sd.lorry_id, DATE_FORMAT(sd.nextdate,"%d-%m-%Y") as "insurancenextdate" from servicedetails sd where sd.type = "Insurance" order by nextdate desc limit 1)insurance'), function($join)
-        {
-            $join->on('lorrys.id', '=', 'insurance.lorry_id');
-        })
-        ->leftJoin(DB::raw('(select sd.lorry_id, DATE_FORMAT(sd.nextdate,"%d-%m-%Y") as "permitnextdate" from servicedetails sd where sd.type = "Permit" order by nextdate desc limit 1)permit'), function($join)
-        {
-            $join->on('lorrys.id', '=', 'permit.lorry_id');
-        })
-        ->leftJoin(DB::raw('(select sd.lorry_id, DATE_FORMAT(sd.nextdate,"%d-%m-%Y") as "roadtaxnextdate" from servicedetails sd where sd.type = "Road Tax" order by nextdate desc limit 1)roadtax'), function($join)
-        {
-            $join->on('lorrys.id', '=', 'roadtax.lorry_id');
-        })
-        ->leftJoin(DB::raw('(select sd.lorry_id, DATE_FORMAT(sd.nextdate,"%d-%m-%Y") as "inspectionnextdate" from servicedetails sd where sd.type = "Inspection" order by nextdate desc limit 1)inspection'), function($join)
-        {
-            $join->on('lorrys.id', '=', 'inspection.lorry_id');
-        })
-        ->leftJoin(DB::raw('(select sd.lorry_id, DATE_FORMAT(sd.nextdate,"%d-%m-%Y") as "othernextdate" from servicedetails sd where sd.type = "Other" order by nextdate desc limit 1)other'), function($join)
-        {
-            $join->on('lorrys.id', '=', 'other.lorry_id');
-        })
-        ->leftJoin(DB::raw('(select sd.lorry_id, DATE_FORMAT(sd.nextdate,"%d-%m-%Y") as "fireextinguishernextdate" from servicedetails sd where sd.type = "Fire Extinguisher" order by nextdate desc limit 1)fireextinguisher'), function($join)
-        {
-            $join->on('lorrys.id', '=', 'fireextinguisher.lorry_id');
-        })
-        ->select('lorrys.id','lorrys.lorryno','lorrys.status','lorrys.remark'
-        ,DB::raw('concat(lorrys.id,":",coalesce(tyre.tyrenextdate,"NAN")) as tyrenextdateshow'),DB::raw('tyre.tyrenextdate as tyrenextdate')
-        ,DB::raw('concat(lorrys.id,":",coalesce(insurance.insurancenextdate,"NAN")) as insurancenextdateshow'),DB::raw('insurance.insurancenextdate as insurancenextdate')
-        ,DB::raw('concat(lorrys.id,":",coalesce(permit.permitnextdate,"NAN")) as permitnextdateshow'),DB::raw('permit.permitnextdate as permitnextdate')
-        ,DB::raw('concat(lorrys.id,":",coalesce(roadtax.roadtaxnextdate,"NAN")) as roadtaxnextdateshow'),DB::raw('roadtax.roadtaxnextdate as roadtaxnextdate')
-        ,DB::raw('concat(lorrys.id,":",coalesce(inspection.inspectionnextdate,"NAN")) as inspectionnextdateshow'),DB::raw('inspection.inspectionnextdate as inspectionnextdate')
-        ,DB::raw('concat(lorrys.id,":",coalesce(other.othernextdate,"NAN")) as othernextdateshow'),DB::raw('other.othernextdate as othernextdate')
-        ,DB::raw('concat(lorrys.id,":",coalesce(fireextinguisher.fireextinguishernextdate,"NAN")) as fireextinguishernextdateshow'),DB::raw('fireextinguisher.fireextinguishernextdate as fireextinguishernextdate'))
-        ->groupby('lorrys.id','lorrys.lorryno','lorrys.status','lorrys.remark'
-        ,'tyre.tyrenextdate','insurance.insurancenextdate','permit.permitnextdate','roadtax.roadtaxnextdate','inspection.inspectionnextdate','other.othernextdate','fireextinguisher.fireextinguishernextdate');
+            ->select('lorrys.id', 'lorrys.lorryno', 'lorrys.jpj_registration','lorrys.status', 'lorrys.in_use', 'lorrys.remark');
     }
 
     /**
@@ -81,14 +57,14 @@ class LorryDataTable extends DataTable
         return $this->builder()
             ->columns($this->getColumns())
             ->minifiedAjax()
-            ->addAction(['title' => trans('invoices.action'), 'printable' => false])
+            ->addAction(['title' => 'Action', 'printable' => false, 'width' => '100px'])
             ->parameters([
                 'dom'       => '<"row"B><"row"<"dataTableBuilderDiv"t>><"row"ip>',
                 'stateSave' => true,
                 'stateDuration' => 0,
-                'processing' => false,
-                'order'     => [[1, 'desc']],
-                'lengthMenu' => [[ 10, 50, 100, 300 ],[ '10 rows', '50 rows', '100 rows', '300 rows' ]],
+                'processing' => true, // Changed to true to see if it's processing
+                'order'     => [[1, 'asc']], // Order by lorryno
+                'lengthMenu' => [[10, 50, 100, 300], ['10 rows', '50 rows', '100 rows', '300 rows']],
                 'buttons' => [
                     [
                         'extend' => 'create',
@@ -116,7 +92,7 @@ class LorryDataTable extends DataTable
                         'exportOptions' => ['columns' => ':visible:not(:last-child)'],
                         'className' => 'btn btn-default btn-sm no-corner',
                         'title' => null,
-                        'filename' => 'invoice' . date('dmYHis')
+                        'filename' => 'lorries_' . date('dmYHis')
                     ],
                     [
                         'extend' => 'pdfHtml5',
@@ -126,7 +102,7 @@ class LorryDataTable extends DataTable
                         'exportOptions' => ['columns' => ':visible:not(:last-child)'],
                         'className' => 'btn btn-default btn-sm no-corner',
                         'title' => null,
-                        'filename' => 'invoice' . date('dmYHis')
+                        'filename' => 'lorries_' . date('dmYHis')
                     ],
                     [
                         'extend' => 'colvis',
@@ -141,60 +117,11 @@ class LorryDataTable extends DataTable
                 ],
                 'columnDefs' => [
                     [
-                        'targets' => -1,
-                        'visible' => true
-                    ],
-                    [
-                        'targets' => 0,
-                        'visible' => true,
+                        'targets' => 0, // Checkbox column
+                        'orderable' => false,
+                        'searchable' => false,
                         'render' => 'function(data, type){return "<input type=\'checkbox\' class=\'checkboxselect\' checkboxid=\'"+data+"\'/>";}'
                     ],
-                    // [
-                    //     'targets' => 3,
-                    //     'render' => 'function(data, type){return parseFloat(data).toFixed(2);}'
-                    //     ,'className' => 'dt-body-right'
-                    // ],
-                    // [
-                    //     'targets' => 4,
-                    //     'render' => 'function(data, type){return parseFloat(data).toFixed(2);}'
-                    //     ,'className' => 'dt-body-right'
-                    // ],
-                    // [
-                    //     'targets' => 5,
-                    //     'render' => 'function(data, type){return parseFloat(data).toFixed(2);}'
-                    //     ,'className' => 'dt-body-right'
-                    // ],
-                    [
-                        'targets' => 2,
-                        'render' => 'function(data, type){return "<a href=\'#\' class=\'TyreService\' lorrykey=\'"+data.split(":")[0]+"\'>"+data.split(":")[1]+"</a>";}'
-                    ],
-                    [
-                        'targets' => 3,
-                        'render' => 'function(data, type){return "<a href=\'#\' class=\'InsuranceList\' lorrykey=\'"+data.split(":")[0]+"\'>"+data.split(":")[1]+"</a>";}'
-                    ],
-                    [
-                        'targets' => 4,
-                        'render' => 'function(data, type){return "<a href=\'#\' class=\'PermitList\' lorrykey=\'"+data.split(":")[0]+"\'>"+data.split(":")[1]+"</a>";}'
-                    ],
-                    [
-                        'targets' => 5,
-                        'render' => 'function(data, type){return "<a href=\'#\' class=\'RoadTaxList\' lorrykey=\'"+data.split(":")[0]+"\'>"+data.split(":")[1]+"</a>";}'
-                    ],
-                    [
-                        'targets' => 6,
-                        'render' => 'function(data, type){return "<a href=\'#\' class=\'InspectionList\' lorrykey=\'"+data.split(":")[0]+"\'>"+data.split(":")[1]+"</a>";}'
-                    ],
-                    [
-                        'targets' => 7,
-                        'render' => 'function(data, type){return "<a href=\'#\' class=\'OtherList\' lorrykey=\'"+data.split(":")[0]+"\'>"+data.split(":")[1]+"</a>";}'
-                    ],
-                    [
-                        'targets' => 8,
-                        'render' => 'function(data, type){return "<a href=\'#\' class=\'FireExtinguisherList\' lorrykey=\'"+data.split(":")[0]+"\'>"+data.split(":")[1]+"</a>";}'
-                    ],
-                    [
-                    'targets' => 9,
-                    'render' => 'function(data, type){return data == 1 ? "Active" : "Unactive";}'],
                 ],
                 'initComplete' => 'function(){
                     var columns = this.api().init().columns;
@@ -204,8 +131,10 @@ class LorryDataTable extends DataTable
                         var column = this;
                         if(columns[index].searchable){
                             if(columns[index].title == \'Status\'){
-                                var input = \'<select class="border-0" style="width: 100%;"><option value="1">Active</option><option value="0">Unactive</option></select>\';
-                            }else{
+                                var input = \'<select class="border-0" style="width: 100%;"><option value="">All</option><option value="1">Active</option><option value="0">Inactive</option></select>\';
+                            } else if(columns[index].title == \'In Use\'){
+                                var input = \'<select class="border-0" style="width: 100%;"><option value="">All</option><option value="1">In Use</option><option value="0">Available</option></select>\';
+                            } else {
                                 var input = \'<input type="text" placeholder="Search ">\';
                             }
                             $(input).appendTo($(column.footer()).empty()).on(\'change\', function(){
@@ -214,6 +143,7 @@ class LorryDataTable extends DataTable
                             })
                         }
                     });
+                    HideLoad();
                 }'
             ]);
     }
@@ -226,85 +156,50 @@ class LorryDataTable extends DataTable
     protected function getColumns()
     {
         return [
-            'checkbox'=> new \Yajra\DataTables\Html\Column(['title' => '<input type="checkbox" id="selectallcheckbox">',
-            'data' => 'id',
-            'name' => 'id',
-            'orderable' => false,
-            'searchable' => false]),
+            'checkbox' => new \Yajra\DataTables\Html\Column([
+                'title' => '<input type="checkbox" id="selectallcheckbox">',
+                'data' => 'id',
+                'name' => 'id',
+                'orderable' => false,
+                'searchable' => false,
+                'width' => '20px'
+            ]),
 
-            'lorryno'=> new \Yajra\DataTables\Html\Column(['title' => trans('invoices.lorry_no'),
-            'data' => 'lorryno',
-            'name' => 'lorryno']),
-
-            // 'type'=> new \Yajra\DataTables\Html\Column(['title' => 'Group',
-            // 'data' => 'type',
-            // 'name' => 'type']),
-
-            // 'weightagelimit'=> new \Yajra\DataTables\Html\Column(['title' => 'Weightage Limit (TON)',
-            // 'data' => 'weightagelimit',
-            // 'name' => 'weightagelimit']),
-
-            // 'commissionlimit'=> new \Yajra\DataTables\Html\Column(['title' => 'Commission Limit (TON)',
-            // 'data' => 'commissionlimit',
-            // 'name' => 'commissionlimit']),
-
-            // 'commissionpercentage'=> new \Yajra\DataTables\Html\Column(['title' => 'Commission %',
-            // 'data' => 'commissionpercentage',
-            // 'name' => 'commissionpercentage']),
-
-            // 'permitholder'=> new \Yajra\DataTables\Html\Column(['title' => 'Permit Holder',
-            // 'data' => 'permitholder',
-            // 'name' => 'permitholder']),
-
-            'tyre'=> new \Yajra\DataTables\Html\Column(['title' => trans('lorries.tyre_next_date'),
-            'data' => 'tyrenextdateshow',
-            'name' => 'tyrenextdate']),
-
-            'insurance'=> new \Yajra\DataTables\Html\Column(['title' => trans('lorries.insurance_next_date'),
-            'data' => 'insurancenextdateshow',
-            'name' => 'insurancenextdate']),
-
-            'permit'=> new \Yajra\DataTables\Html\Column(['title' => trans('lorries.permit_next_date'),
-            'data' => 'permitnextdateshow',
-            'name' => 'permitnextdate']),
-
-            'roadtax'=> new \Yajra\DataTables\Html\Column(['title' => trans('lorries.road_tax_next_date'),
-            'data' => 'roadtaxnextdateshow',
-            'name' => 'roadtaxnextdate']),
-
-            'inspection'=> new \Yajra\DataTables\Html\Column(['title' => trans('lorries.inspection_next_date'),
-            'data' => 'inspectionnextdateshow',
-            'name' => 'inspectionnextdate']),
-
-            'other'=> new \Yajra\DataTables\Html\Column(['title' =>  trans('lorries.other_next_date'),
-            'data' => 'othernextdateshow',
-            'name' => 'othernextdate']),
-
-            'fireextinguisher'=> new \Yajra\DataTables\Html\Column(['title' => trans('lorries.fire_extinguisher'),
-            'data' => 'fireextinguishernextdateshow',
-            'name' => 'fireextinguisher']),
-
-            trans('lorries.status'),
-            trans('lorries.remark'),
+            'lorryno' => new \Yajra\DataTables\Html\Column([
+                'title' => trans('lorries.lorry_no'),
+                'data' => 'lorryno',
+                'name' => 'lorryno',
+                'width' => '100px'
+            ]),
+            'jpj_registration' => new \Yajra\DataTables\Html\Column([
+                'title' => 'JPJ Registration Number',
+                'data' => 'jpj_registration',
+                'name' => 'jpj_registration',
+                'width' => '100px'
+            ]),
             
-            // 'STR_UDF1'=> new \Yajra\DataTables\Html\Column(['title' => 'String UDF1',
-            // 'data' => 'STR_UDF1',
-            // 'name' => 'STR_UDF1']),
-            // 'STR_UDF2'=> new \Yajra\DataTables\Html\Column(['title' => 'String UDF2',
-            // 'data' => 'STR_UDF2',
-            // 'name' => 'STR_UDF2']),
-            // 'STR_UDF3'=> new \Yajra\DataTables\Html\Column(['title' => 'String UDF3',
-            // 'data' => 'STR_UDF3',
-            // 'name' => 'STR_UDF3']),
-            // 'INT_UDF1'=> new \Yajra\DataTables\Html\Column(['title' => 'Integer UDF1',
-            // 'data' => 'INT_UDF1',
-            // 'name' => 'INT_UDF1']),
-            // 'INT_UDF2'=> new \Yajra\DataTables\Html\Column(['title' => 'Integer UDF2',
-            // 'data' => 'INT_UDF2',
-            // 'name' => 'INT_UDF2']),
-            // 'INT_UDF3'=> new \Yajra\DataTables\Html\Column(['title' => 'Integer UDF3',
-            // 'data' => 'INT_UDF3',
-            // 'name' => 'INT_UDF3']),
+            'status' => new \Yajra\DataTables\Html\Column([
+                'title' => trans('lorries.status'),
+                'data' => 'status',
+                'name' => 'status',
+                'searchable' => true,
+                'width' => '80px'
+            ]),
+
+            'in_use' => new \Yajra\DataTables\Html\Column([
+                'title' => 'In Use',
+                'data' => 'in_use',
+                'name' => 'in_use',
+                'searchable' => true,
+                'width' => '80px'
+            ]),
+
+            'remark' => new \Yajra\DataTables\Html\Column([
+                'title' => trans('lorries.remark'),
+                'data' => 'remark',
+                'name' => 'remark',
+                'width' => '200px'
+            ]),
         ];
     }
 

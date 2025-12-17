@@ -492,4 +492,30 @@ class InvoicePaymentController extends AppBaseController
         
         Session::forget('invoice_payment_data');
     }
+
+    public function getcustomerinvoice($id)
+    {
+        $invoices = Invoice::with(['invoicedetail', 'invoicepayment' => function ($query) {
+            $query->where('status', 1); // Only include payments where status = 1
+        }])
+        ->where('customer_id', $id)
+        ->get(['id', 'invoiceno', 'date']); // Include id, invoiceno, and date
+
+        if ($invoices->isEmpty()) {
+            return response()->json(['status' => false, 'message' => 'Invoices not found!']);
+        }
+
+        $invoiceData = $invoices->map(function ($invoice) {
+            $totalPayments = $invoice->invoicepayment->sum('amount');
+
+            return [
+                'id' => $invoice->id,
+                'invoiceno' => $invoice->invoiceno,
+                'date' => $invoice->date, // Format the date as needed
+                'total_amount' => $totalPayments // Total amount of approved payments
+            ];
+        });
+        return response()->json(['status' => true, 'message' => 'Invoices found!', 'data' => $invoiceData]);
+    }
+
 }

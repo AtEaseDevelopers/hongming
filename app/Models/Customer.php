@@ -19,7 +19,6 @@ class Customer extends Model
     const CREATED_AT = 'created_at';
     const UPDATED_AT = 'updated_at';
 
-
     public $appends = [
         'GroupDescription',
     ];
@@ -36,7 +35,13 @@ class Customer extends Model
         'address',
         'status',
         'sst',
-        'tin'
+        'tin',
+        'place_name',
+        'place_address',
+        'place_latitude',
+        'place_longitude',
+        'google_place_id',
+        'destinate_id'
     ];
 
     /**
@@ -54,9 +59,10 @@ class Customer extends Model
         'supervisor_id' => 'integer',
         'phone' => 'string',
         'address' => 'string',
-        'status' => 'integer',
         'sst' => 'string',
-        'tin' => 'string'
+        'tin' => 'string',
+        'place_latitude' => 'decimal:8',
+        'place_longitude' => 'decimal:8',
     ];
 
     /**
@@ -66,15 +72,21 @@ class Customer extends Model
      */
     public static $rules = [
         'code' => 'required|string|max:255|unique:customers,code',
-        'company' => 'required|string|max:255|string|max:255',
-        'paymentterm' => 'required',
-        'phone' => 'nullable|string|max:20|nullable|string|max:20',
-        'address' => 'nullable|string|max:65535|nullable|string|max:65535',
+        'company' => 'required|string|max:255',
+        'paymentterm' => 'nullable',
+        'phone' => 'nullable|string|max:20',
+        'address' => 'nullable|string|max:65535',
         'status' => 'required',
         'sst' => 'nullable|string|max:255',
         'tin' => 'nullable|string|max:255',
-        'created_at' => 'nullable|nullable',
-        'updated_at' => 'nullable|nullable'
+        'place_name' => 'nullable|string|max:255',
+        'place_address' => 'nullable|string',
+        'place_latitude' => 'nullable|numeric',
+        'place_longitude' => 'nullable|numeric',
+        'google_place_id' => 'nullable|string|max:255',
+        'destinate_id' => 'nullable|string|max:255',
+        'created_at' => 'nullable',
+        'updated_at' => 'nullable'
     ];
 
     /**
@@ -118,4 +130,39 @@ class Customer extends Model
         return Code::where('code','customer_group')->whereRaw('find_in_set(codes.value, "'.$this->group.'")')->select(DB::raw("GROUP_CONCAT(codes.description) as group_descr"))->get()->first()->group_descr ?? '';
     }
 
+    public function deliveryOrders(): HasMany
+    {
+        return $this->hasMany(DeliveryOrder::class);
+    }
+
+    public function machineRentals(): HasMany
+    {
+        return $this->hasMany(MachineRental::class);
+    }
+
+    /**
+     * Check if customer has destination data
+     */
+    public function hasDestination(): bool
+    {
+        return !empty($this->place_name) && 
+               !empty($this->place_address) && 
+               !is_null($this->place_latitude) && 
+               !is_null($this->place_longitude);
+    }
+
+    /**
+     * Get destination data as array
+     */
+    public function getDestinationData(): array
+    {
+        return [
+            'place_name' => $this->place_name,
+            'place_address' => $this->place_address,
+            'place_latitude' => $this->place_latitude,
+            'place_longitude' => $this->place_longitude,
+            'google_place_id' => $this->google_place_id,
+            'destinate_id' => $this->destinate_id,
+        ];
+    }
 }

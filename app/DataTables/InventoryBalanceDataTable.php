@@ -128,7 +128,9 @@ class InventoryBalanceDataTable extends DataTable
             'data' => 'product.name',
             'name' => 'product.name']),
 
-             trans('inventory_balances.quantity'),
+            'quantity'=> new \Yajra\DataTables\Html\Column(['title' =>  trans('inventory_balances.quantity'),
+            'data' => 'quantity',
+            'name' => 'quantity']),
         ];
     }
 

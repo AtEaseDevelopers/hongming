@@ -1,7 +1,20 @@
+<!-- Customer Id Field -->
+<div class="form-group col-sm-6">
+    {!! Form::label('customer_id', __('invoices.customer')) !!}<span class="asterisk"> *</span>
+    {!! Form::select('customer_id', $customerItems, null, ['class' => 'form-control select2-customer', 'placeholder' => 'Pick a Customer...']) !!}
+</div>
+
 <!-- Invoice Id Field -->
 <div class="form-group col-sm-6">
     {!! Form::label('invoice_id', __('invoice_payments.invoice')) !!}
-    {!! Form::select('invoice_id', $invoiceItems, null, ['class' => 'form-control', 'placeholder' => 'Pick a Invoice...', 'autofocus']) !!}
+    <select name="invoice_id" id="invoice_id" class="form-control select2-invoice" placeholder="Pick an Invoice...">
+        <option value="">Pick an Invoice...</option>
+        @if (isset($selectedInvoice))
+            <option value="{{ $selectedInvoice->id }}" selected>
+                {{ $selectedInvoice->invoiceno }} - RM {{ number_format($selectedInvoice->total_amount ?? 0, 2) }} - {{ $selectedInvoice->date }}
+            </option>
+        @endif
+    </select>
 </div>
 
 <!-- Type Field -->
@@ -13,13 +26,7 @@
 <!-- ChequeNo Field -->
 <div class="form-group col-sm-6" id='cheque-container' style='display:none;'>
     {!! Form::label('chequeno', __('invoice_payments.cheque_no')) !!}
-    {!! Form::text('chequeno', null, ['class' => 'form-control', 'maxlength' => 20]) !!} <!-- Removed duplicate maxlength -->
-</div>
-
-<!-- Customer Id Field -->
-<div class="form-group col-sm-6">
-    {!! Form::label('customer_id', __('invoices.customer')) !!}<span class="asterisk"> *</span>
-    {!! Form::select('customer_id', $customerItems, null, ['class' => 'form-control select2-customer', 'placeholder' => 'Pick a Customer...']) !!}
+    {!! Form::text('chequeno', null, ['class' => 'form-control', 'maxlength' => 20]) !!}
 </div>
 
 <!-- Amount Field -->
@@ -45,36 +52,10 @@
     </div>
 </div>
 
-<!-- Approve By Field -->
-<!-- <div class="form-group col-sm-6">
-    {!! Form::label('approve_by', 'Approve By:') !!}
-    {!! Form::text('approve_by', null, ['class' => 'form-control','maxlength' => 255]) !!}
-</div> -->
-
-<!-- Approve At Field -->
-<!-- <div class="form-group col-sm-6">
-    {!! Form::label('approve_at', 'Approve At:') !!}
-    {!! Form::text('approve_at', null, ['class' => 'form-control','id'=>'approve_at']) !!}
-</div> -->
-
-<!-- @push('scripts')
-   <script type="text/javascript">
-           $('#approve_at').datetimepicker({
-               format: 'YYYY-MM-DD HH:mm:ss',
-               useCurrent: true,
-               icons: {
-                   up: "icon-arrow-up-circle icons font-2xl",
-                   down: "icon-arrow-down-circle icons font-2xl"
-               },
-               sideBySide: true
-           })
-       </script>
-@endpush -->
-
 <!-- Remark Field -->
 <div class="form-group col-sm-6">
     {!! Form::label('remark', __('invoice_payments.remark')) !!}
-    {!! Form::text('remark', null, ['class' => 'form-control', 'maxlength' => 255]) !!} <!-- Removed duplicate maxlength -->
+    {!! Form::text('remark', null, ['class' => 'form-control', 'maxlength' => 255]) !!}
 </div>
 
 <!-- Submit Field -->
@@ -90,24 +71,79 @@
                 $('form a.btn-secondary')[0].click();
             }
         });
+        
         $(document).ready(function () {
+            // Initialize select2 for customer
             $('.select2-customer').select2({
                 placeholder: "Search for a customer...",
                 allowClear: true,
                 width: '100%'
             });
+            
+            // Initialize select2 for invoice
+            $('.select2-invoice').select2({
+                placeholder: "Search for an invoice...",
+                allowClear: true,
+                width: '100%'
+            });
+            
             HideLoad();
+            
+            // If editing, ensure the invoice is properly selected
+            @if (isset($selectedInvoice))
+                $('#invoice_id').val("{{ $selectedInvoice->id }}").trigger('change');
+            @endif
         });
+        
         $("#attachment").on("change", function(){
             if(this.value != ''){
                 $('#attachment-label').html(this.value);
             }else{
                 $('#attachment-label').html('Choose file');
             }
-        })
+        });
+        
+        $("#customer_id").change(function(){
+            ShowLoad();
+            let customerId = $('#customer_id').val();
+
+            // Always clear the invoice dropdown first
+            $('#invoice_id').empty().append('<option value="">Pick an Invoice...</option>');
+            $('#invoice_id').val(null).trigger('change');
+            
+            if (customerId === '') {
+                HideLoad();
+            } else {
+                var url = '{{ config("app.url") }}/invoicePayments/customer-invoices/' + customerId;
+
+                $.get(url, function(data, status){
+                    if (status === 'success') {
+                        if (data.status) {
+                            var options = '<option value="">Pick an Invoice...</option>';
+                            if (data.data.length > 0) {
+                                $.each(data.data, function(key, invoice) {
+                                    options += `<option value="${invoice.id}">
+                                        ${invoice.invoiceno} - RM ${invoice.total_amount.toFixed(2)} - ${invoice.date}
+                                    </option>`;
+                                });
+                            }
+                            // Update the invoice select dropdown
+                            $('#invoice_id').empty().append(options);
+                        } else {
+                            noti('e', 'Please contact your administrator', data.message);
+                        }
+                    } else {
+                        noti('e', 'Please contact your administrator', '');
+                    }
+                    HideLoad();
+                });
+            }
+        });
+        
         $("#invoice_id").on("change", function(){
             getinvoice();
-        })
+        });
+        
         function getinvoice(){
             var invoice_id = $('#invoice_id').val();
             if(invoice_id != ''){
@@ -121,7 +157,7 @@
                             data.data.invoicedetail.forEach((element, index, array) => {
                                 amount = amount + element.totalprice;
                             });
-                            $('#customer_id').val(customer_id);
+                            $('#customer_id').val(customer_id).trigger('change');
                             $('#amount').val(amount);
                         }else{
                             noti('e','Please contact your administrator',data.message);
@@ -134,15 +170,60 @@
                 }); 
             }
         }
+        
         $('#type').change(function(){
-            if($(this).val() == "5")
-            {
+            if($(this).val() == "5") {
                 $('#cheque-container').show();
-            }
-            else
-            {
+            } else {
                 $('#cheque-container').hide();
             }
         });
     </script>
+    <style>
+        /* Select2 search field styling */
+        .select2-container--default .select2-search--dropdown .select2-search__field {
+            padding: 6px 10px;
+            border: 1px solid #ced4da;
+            border-radius: 4px;
+            font-size: 14px;
+            outline: none;
+            box-shadow: none;
+        }
+
+        /* Dropdown menu styling */
+        .select2-container--default .select2-results__option--highlighted[aria-selected] {
+            background-color: #007bff;
+            color: white;
+        }
+
+        /* Selected item styling */
+        .select2-container--default .select2-selection--single {
+            height: 38px;
+            border: 1px solid #ced4da;
+            border-radius: 4px;
+        }
+
+        .select2-container--default .select2-selection--single .select2-selection__rendered {
+            line-height: 36px;
+            padding-left: 12px;
+            color: #495057;
+        }
+
+        .select2-container--default .select2-selection--single .select2-selection__arrow {
+            height: 36px;
+        }
+
+        /* Focus/hover states */
+        .select2-container--default.select2-container--focus .select2-selection--single,
+        .select2-container--default.select2-container--open .select2-selection--single {
+            border-color: #80bdff;
+            box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+        }
+
+        /* Dropdown width adjustment */
+        .select2-container {
+            width: 100% !important;
+        }
+
+    </style>
 @endpush

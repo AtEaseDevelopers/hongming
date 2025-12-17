@@ -32,7 +32,7 @@
 @endsection
 
 @push('scripts')
-    <script>
+    <script>    
         $(document).keyup(function(e) {
             if(e.altKey && e.keyCode == 78){
                 $('.card .card-header a')[0].click();

@@ -10,9 +10,24 @@
     <p>{{ $company->name }}</p>
 </div>
 
+<div class="form-group">
+    {!! Form::label('do_prefix', __('Project Prefix') . ':') !!}
+    <p>{{ $company->do_prefix }}</p>
+</div>
+
+<div class="form-group">
+    {!! Form::label('machine_prefix', __('Machine Rental Prefix') . ':') !!}
+    <p>{{ $company->machine_prefix }}</p>
+</div>
+
+<div class="form-group">
+    {!! Form::label('task_prefix', __('Delivery Order Prefix') . ':') !!}
+    <p>{{ $company->task_prefix }}</p>
+</div>
+
 <!-- Ssm Field -->
 <div class="form-group">
-    {!! Form::label('ssm', __('companies.ssm') . ':') !!}
+    {!! Form::label('ssm', __('SSM') . ':') !!}
     <p>{{ $company->ssm }}</p>
 </div>
 
@@ -40,11 +55,6 @@
     <p>{{ $company->address4 }}</p>
 </div>
 
-<!-- Group Id Field -->
-<div class="form-group">
-    {!! Form::label('group_id', __('companies.group') . ':') !!}
-    <p>{{ $company->group->description }}</p>
-</div>
 
 @push('scripts')
     <script>

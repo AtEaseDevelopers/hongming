@@ -3,7 +3,7 @@
 @section('content')
     <ol class="breadcrumb">
       <li class="breadcrumb-item">
-         <a href="{!! route('tasks.index') !!}">{{ __('tasks.tasks') }}</a>
+         <a href="{!! route('tasks.index') !!}">{{ __('Delivery Order') }}</a>
       </li>
       <li class="breadcrumb-item active">{{ __('tasks.create') }}</li>
     </ol>
@@ -15,10 +15,10 @@
                         <div class="card">
                             <div class="card-header">
                                 <i class="fa fa-plus-square-o fa-lg"></i>
-                                <strong>{{ __('tasks.create_task') }}</strong>
+                                <strong>{{ __('Create Delivery Order') }}</strong>
                             </div>
                             <div class="card-body">
-                                {!! Form::open(['route' => 'tasks.store']) !!}
+                                {!! Form::open(['route' => 'tasks.store', 'files' => true]) !!}
 
                                    @include('tasks.fields')
 

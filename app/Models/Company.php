@@ -41,11 +41,16 @@ class Company extends Model
         'code',
         'name',
         'ssm',
+        'phone',
+        'email',
         'address1',
         'address2',
         'address3',
         'address4',
-        'group_id'
+        'do_prefix',
+        'task_prefix',
+        'machine_prefix'
+
     ];
 
     /**
@@ -58,11 +63,13 @@ class Company extends Model
         'code' => 'string',
         'name' => 'string',
         'ssm' => 'string',
+        'do_prefix' => 'string',
+        'task_prefix' => 'string',
+        'machine_prefix' => 'string',
         'address1' => 'string',
         'address2' => 'string',
         'address3' => 'string',
         'address4' => 'string',
-        'group_id' => 'integer'
     ];
 
     /**
@@ -74,19 +81,27 @@ class Company extends Model
         'code' => 'required|string|max:255|string|max:255',
         'name' => 'required|string|max:255|string|max:255',
         'ssm' => 'required|string|max:255|string|max:255',
+        'do_prefix' => 'required|string|max:255|string|max:10',
+        'machine_prefix' => 'required|string|max:255|string|max:10',
+        'task_prefix' => 'required|string|max:255|string|max:10',
+        'machine_prefix' => 'required|string|max:255|string|max:10',
+        'task_prefix' => 'required|string|max:255|string|max:10',
         'address1' => 'nullable|string|max:255|nullable|string|max:255',
         'address2' => 'nullable|string|max:255|nullable|string|max:255',
         'address3' => 'nullable|string|max:255|nullable|string|max:255',
         'address4' => 'nullable|string|max:255|nullable|string|max:255',
-        'group_id' => 'required|unique:companies,group_id',
         'created_at' => 'nullable|nullable',
         'updated_at' => 'nullable|nullable'
     ];
 
-    public function group()
+    public function machineRentals(): HasMany
     {
-        return $this->belongsTo(\App\Models\Code::class, 'group_id', 'value')->where('code','customer_group');
+        return $this->hasMany(MachineRental::class);
     }
 
-    
+    public function tasks(): HasMany
+    {
+        return $this->hasMany(Task::class);
+    }
+
 }

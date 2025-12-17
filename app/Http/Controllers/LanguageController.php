@@ -808,6 +808,7 @@ class LanguageController extends Controller
 
                 'placeholder_pick_driver' => $translations['assign']['placeholder_pick_driver'] ?? '',
                 'placeholder_pick_group' => $translations['assign']['placeholder_pick_group'] ?? '',
+                'company' => $translations['assign']['company'] ?? '',
 
 
                 'customer' => $translations['assign']['customer'] ?? '',

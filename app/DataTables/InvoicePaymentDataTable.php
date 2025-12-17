@@ -232,20 +232,30 @@ class InvoicePaymentDataTable extends DataTable
             'customer_id'=> new \Yajra\DataTables\Html\Column(['title' => trans('invoice_payments.customer'),
             'data' => 'customer.company',
             'name' => 'customer.company']),
-
-            trans('invoice_payments.type'),
+            
+            'type'=> new \Yajra\DataTables\Html\Column(['title' => trans('invoice_payments.type'),
+            'data' => 'type',
+            'name' => 'type']),
 
             'payment_no'=> new \Yajra\DataTables\Html\Column(['title' => trans('invoice_payments.payment_no'),
             'data' => 'payment_no',
             'name' => 'payment_no']),
             
             'invoice_id'=> new \Yajra\DataTables\Html\Column(['title' => trans('invoice_payments.invoice_no'),
-            'data' => 'invoice.invoiceno',
-            'name' => 'invoice.invoiceno']),
+            'data' => 'invoice_id',
+            'name' => 'invoice.invoice_no']),
 
-            trans('invoice_payments.amount'),
-            trans('invoice_payments.status'),
-            trans('invoice_payments.attachment'),
+            'amount'=> new \Yajra\DataTables\Html\Column(['title' => trans('invoice_payments.amount'),
+            'data' => 'amount',
+            'name' => 'invoice.amount']),
+
+            'status'=> new \Yajra\DataTables\Html\Column(['title' => trans('invoice_payments.status'),
+            'data' => 'status',
+            'name' => 'status']),
+
+            'attachment'=> new \Yajra\DataTables\Html\Column(['title' => trans('invoice_payments.attachment'),
+            'data' => 'attachment',
+            'name' => 'attachment']),
 
             'approve_by'=> new \Yajra\DataTables\Html\Column(['title' =>  trans('invoice_payments.approve_by'),
             'data' => 'approve_by',

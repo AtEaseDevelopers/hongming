@@ -48,10 +48,8 @@ class LoginController extends Controller
         $permissions = $role->permissions()->pluck('name')->toArray(); // Get permission names
 
         // Define redirection routes based on permissions or roles
-        if (in_array('inventorybalance', $permissions) && !in_array('invoice', $permissions)) {
-            return redirect()->route('inventoryBalances.index'); // Redirect Inventory Admin
-        } elseif ($role->name === 'admin') {
-            return redirect()->route('invoices.index'); // Redirect Admin
+        if ($role->name === 'normal admin' || $role->name === 'approval admin' ) {
+            return redirect()->route('deliveryOrders.index'); // Redirect Admin
         }
 
         // Default redirection to home route

@@ -30,12 +30,6 @@ class DeliveryOrderRepository extends BaseRepository
         'billingrate',
         'commissionrate',
         'status',
-        'STR_UDF1',
-        'STR_UDF2',
-        'STR_UDF3',
-        'INT_UDF1',
-        'INT_UDF2',
-        'INT_UDF3'
     ];
 
     /**

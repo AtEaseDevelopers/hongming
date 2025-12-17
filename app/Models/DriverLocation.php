@@ -26,7 +26,6 @@ class DriverLocation extends Model
     public $fillable = [
         'date',
         'driver_id',
-        'kelindan_id',
         'lorry_id',
         'latitude',
         'longitude',
@@ -40,7 +39,6 @@ class DriverLocation extends Model
     protected $casts = [
         'date' => 'date:d-m-Y',
         'driver_id' => 'integer',
-        'kelindan_id' => 'integer',
         'lorry_id' => 'integer',
         'latitude' => 'string',
         'longitude' => 'string',
@@ -54,7 +52,6 @@ class DriverLocation extends Model
     public static $rules = [
         'date' => 'required|date',
         'driver_id' => 'required|numeric',
-        'kelindan_id' => 'required|numeric',
         'lorry_id' => 'required|numeric',
         'latitude' => 'required|string|max:255',
         'longitude' => 'required|string|max:255',
@@ -78,9 +75,6 @@ class DriverLocation extends Model
         return $this->belongsTo(\App\Models\Lorry::class, 'lorry_id', 'id');
     }
 
-    public function getDateAttribute($value)
-    {
-        return Carbon::parse($value)->format('d-m-Y H:i:s');
-    }
+
 
 }

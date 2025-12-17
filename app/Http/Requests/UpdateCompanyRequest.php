@@ -30,11 +30,13 @@ class UpdateCompanyRequest extends FormRequest
             'code' => 'required|string|max:255|string|max:255',
             'name' => 'required|string|max:255|string|max:255',
             'ssm' => 'required|string|max:255|string|max:255',
+            'do_prefix' => 'required|string|max:255|string|max:10',
+            'machine_prefix' => 'required|string|max:255|string|max:10',
+            'task_prefix' => 'required|string|max:255|string|max:10',
             'address1' => 'nullable|string|max:255|nullable|string|max:255',
             'address2' => 'nullable|string|max:255|nullable|string|max:255',
             'address3' => 'nullable|string|max:255|nullable|string|max:255',
             'address4' => 'nullable|string|max:255|nullable|string|max:255',
-            'group_id' => 'required|unique:companies,group_id,'.Crypt::decrypt($id),
             'created_at' => 'nullable|nullable',
             'updated_at' => 'nullable|nullable'
         ];

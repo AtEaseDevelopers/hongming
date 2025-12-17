@@ -1,11 +1,4 @@
-{{-- @canany(['deliveryorder'])
-<li class="nav-item {{ Request::is('deliveryOrders*') ? 'active' : '' }}">
-    <a class="nav-link {{ Request::is('deliveryOrders*') ? 'active' : '' }}" href="{{ route('deliveryOrders.index') }}">
-        <i class="nav-icon icon-notebook"></i>
-        <span>{{ trans('side_menu.delivery_orders') }}</span>
-    </a>
-</li>
-@endcanany
+{{--
 
 @canany(['loan','loanpayment'])
 <li class="nav-item nav-dropdown {{ Request::is('loans*','loanpayments*') ? 'open' : '' }}">
@@ -97,7 +90,25 @@
 </li>
 @endcanany --}}
 
-@canany(['invoice'])
+
+    
+@canany(['deliveryorder'])
+<li class="nav-item {{ Request::is('deliveryOrders*') ? 'active' : '' }}">
+    <a class="nav-link {{ Request::is('deliveryOrders*') ? 'active' : '' }}" href="{{ route('deliveryOrders.index') }}">
+        <i class="nav-icon icon-notebook"></i>
+        <span>{{ trans('Project') }}</span>
+    </a>
+</li>
+@endcanany
+@canany(['machinerental'])
+<li class="nav-item {{ Request::is('machineRental*') ? 'active' : '' }}">
+    <a class="nav-link {{ Request::is('machineRental*') ? 'active' : '' }}" href="{{ route('machineRentals.index') }}">
+        <i class="nav-icon icon-notebook"></i>
+        <span>{{ trans('Machine Rental') }}</span>
+    </a>
+</li>
+@endcanany
+<!-- @canany(['invoice'])
 <li class="nav-item nav-dropdown {{ Request::is('invoices*','invoiceDetails*','invoicePayments') ? 'open' : '' }}">
     <a class="nav-link nav-dropdown-toggle" href="#">
         <i class="nav-icon icon-notebook"></i>
@@ -129,13 +140,13 @@
     @endcan
 
 </li>
-@endcanany
+@endcanany -->
 
 @canany(['task'])
 <li class="nav-item {{ Request::is('tasks*','taskTransfers*') ? 'open' : '' }}">
     <a class="nav-link {{ Request::is('tasks*','taskTransfers*') ? 'active' : '' }}" href="{{ route('tasks.index') }}">
         <i class="nav-icon icon-menu"></i>
-        <span>{{ trans('side_menu.tasks') }}</span>
+        <span>{{ trans('side_menu.delivery_orders') }}</span>
     </a>
 </li>
 @endcanany
@@ -149,7 +160,16 @@
 </li>
 @endcanany
 
-@canany(['inventorybalance','inventorytransaction'])
+@canany(['checkin'])
+<li class="nav-item {{ Request::is('checkin*') ? 'active' : '' }}">
+    <a class="nav-link" href="{{ route('checkins.index') }}">
+        <i class="nav-icon icon-check"></i>
+        <span>{{ trans('Check In') }}</span>
+    </a>
+</li>
+@endcanany
+
+<!-- @canany(['inventorybalance','inventorytransaction'])
 <li class="nav-item nav-dropdown {{ Request::is('inventoryBalances*','inventoryTransactions*') ? 'open' : '' }}">
     <a class="nav-link nav-dropdown-toggle" href="#">
         <i class="nav-icon icon-drawer"></i>
@@ -184,7 +204,7 @@
         </ul>
     @endcan
 </li>
-@endcanany
+@endcanany -->
 
 @canany(['lorry','driver','kelindan','agent','supervisor','product','customer','specialprice','foc','assigns'])
 <li class="nav-item nav-dropdown {{ Request::is('lorries*','servicedetails*','drivers*','driverLocations*','kelindans*','agents*','supervisors*','products*','customers*','specialprices*','focs*','assigns*') ? 'open' : '' }}">
@@ -201,13 +221,13 @@
                 </a>
             </li>
         </ul>
-        <ul class="nav-dropdown-items">
+        <!-- <ul class="nav-dropdown-items">
             <li class="nav-item {{ Request::is('servicedetails*') ? 'active' : '' }}">
                 <a class="nav-link {{ Request::is('servicedetails*') ? 'active' : '' }}" href="{{ route('servicedetails.index') }}">
                     <span>{{ trans('side_menu.lorry_service') }}</span>
                 </a>
             </li>
-        </ul>
+        </ul> -->
     @endcan
 
     @can('driver')
@@ -227,7 +247,7 @@
         </ul>
     @endcan
 
-    @can('kelindan')
+    <!-- @can('kelindan')
         <ul class="nav-dropdown-items">
             <li class="nav-item {{ Request::is('kelindans*') ? 'active' : '' }}">
                 <a class="nav-link {{ Request::is('kelindans*') ? 'active' : '' }}" href="{{ route('kelindans.index') }}">
@@ -235,8 +255,8 @@
                 </a>
             </li>
         </ul>
-    @endcan
-
+    @endcan -->
+<!-- 
     @can('agent')
         <ul class="nav-dropdown-items">
             <li class="nav-item {{ Request::is('agents*') ? 'active' : '' }}">
@@ -255,7 +275,7 @@
                 </a>
             </li>
         </ul>
-    @endcan
+    @endcan -->
 
     @can('product')
         <ul class="nav-dropdown-items">
@@ -281,13 +301,13 @@
         <ul class="nav-dropdown-items">
             <li class="nav-item {{ Request::is('companies*') ? 'active' : '' }}">
                 <a class="nav-link {{ Request::is('companies*') ? 'active' : '' }}" href="{{ route('companies.index') }}">
-                    <span>{{ trans('side_menu.companies') }}</span>
+                    <span>{{ trans('Branch') }}</span>
                 </a>
             </li>
         </ul>
     @endcan
 
-    @can('specialprice')
+    <!-- @can('specialprice')
         <ul class="nav-dropdown-items">
             <li class="nav-item {{ Request::is('specialprices*') ? 'active' : '' }}">
                 <a class="nav-link {{ Request::is('specialprices*') ? 'active' : '' }}" href="{{ route('specialPrices.index') }}">
@@ -315,12 +335,12 @@
                 </a>
             </li>
         </ul>
-    @endcan
+    @endcan -->
 
 </li>
 @endcanany
 
-@canany(['code'])
+<!-- @canany(['code'])
 <li class="nav-item nav-dropdown {{ Request::is('codes*') ? 'open' : '' }}">
     <a class="nav-link nav-dropdown-toggle" href="#">
         <i class="nav-icon icon-settings"></i>
@@ -358,7 +378,7 @@
     @endcan
 
 </li>
-@endcanany
+@endcanany -->
 
 @canany(['user','userrole','role','rolepermission'])
 <li class="nav-item nav-dropdown {{ Request::is('users*','userHasRoles*','roles*','roleHasPermissions*','permissions*') ? 'open' : '' }}">

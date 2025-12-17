@@ -645,7 +645,7 @@ class InvoiceController extends AppBaseController
         if (empty($invoice)) {
             abort('404');
         }
-
+        
         $min = 450;
         $each = 23;
         $height = (count($invoice['invoicedetail']) * $each) + $min;

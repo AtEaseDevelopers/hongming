@@ -76,21 +76,38 @@ class AssignController extends AppBaseController
     public function massstore(Request $request)
     {
         $input = $request->all();
-        $s = 0;
-        $c = 0;
-        foreach ($input['customer'] as $customer){
-            $data['driver_id'] = $input['driver_id'];
-            $data['customer_id'] = $input['customer'][$c];
-            $data['sequence'] = $input['sequence'][$c];
-            $assign = $this->assignRepository->create($data);
-            if($assign){
-                $s++;
+        $successCount = 0;
+        
+        foreach ($input['customer'] as $index => $customerId) {
+            $data = [
+                'driver_id' => $input['driver_id'],
+                'delivery_order_id' => $customerId,
+                'sequence' => $input['sequence'][$index] ?? 1,
+            ];
+            
+            // Check if assignment already exists using where()->first()
+            $existingAssignment = $this->assignRepository
+                ->makeModel()
+                ->where('driver_id', $data['driver_id'])
+                ->where('delivery_order_id', $data['delivery_order_id'])
+                ->first();
+            
+            if ($existingAssignment) {
+                // Update existing assignment
+                $updated = $this->assignRepository->update($data, $existingAssignment->id);
+                if ($updated) {
+                    $successCount++;
+                }
+            } else {
+                // Create new assignment
+                $assign = $this->assignRepository->create($data);
+                if ($assign) {
+                    $successCount++;
+                }
             }
-            $c++;
         }
 
-        Flash::success($s.' assign(s) saved successfully.');
-
+        Flash::success($successCount . ' assignment(s) processed successfully.');
         return redirect(route('assigns.index'));
     }
 

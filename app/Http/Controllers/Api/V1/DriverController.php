@@ -9,6 +9,10 @@ use Illuminate\Support\Facades\DB;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Facades\Storage;
 use Datetime;
+use App\Models\DeliveryOrder;
+use App\Models\DeliveryImage;
+use App\Models\DriverCheckIn;
+use App\Models\DriverNotifications;
 use App\Models\Driver;
 use App\Models\Trip;
 use App\Models\Kelindan;
@@ -31,6 +35,7 @@ use App\Models\DriverLocation;
 use App\Models\Language;
 use App\Models\MobileTranslationVersion;
 use App\Models\MobileTranslation;
+use Illuminate\Support\Facades\Crypt; 
 
 class DriverController extends Controller
 {
@@ -232,7 +237,6 @@ class DriverController extends Controller
     }
 
     public function location(Request $request){
-        $data = $request->all();
         try{
             $data = $request->all();
             //check session
@@ -244,25 +248,9 @@ class DriverController extends Controller
                     'data' => null
                 ], 401);
             }
-            //validate
-            $trip = Trip::where('driver_id', $driver->id)->orderby('date','desc')->first();
-            if(!empty($trip)){
-                if($trip->type == 2){
-                    return response()->json([
-                        'result' => false,
-                        'message' => __LINE__.$this->message_separator.'api.message.trip_had_not_started',
-                        'data' => null
-                    ], 400);
-                }
-            }else{
-                return response()->json([
-                    'result' => false,
-                    'message' => __LINE__.$this->message_separator.'api.message.trip_had_not_started',
-                    'data' => null
-                ], 400);
-            }
+    
             $validator = Validator::make($request->all(), [
-                'date' => 'required|date',
+                'lorry_id' => 'required|numeric',
                 'latitude' => 'required|numeric',
                 'longitude' => 'required|numeric'
             ]);
@@ -274,19 +262,28 @@ class DriverController extends Controller
                     'data' => null
                 ], 400);
             }
+             $lorry = Lorry::where('id', $data['lorry_id'])->first();
+            if (empty($lorry)) {
+                return response()->json([
+                    'result' => false,
+                    'message' => __LINE__ . $this->message_separator . 'api.message.invalid_lorry',
+                    'data' => null
+                ], 400);
+            }
+            
             //process
-            $DriverLocation = new DriverLocation();
-            $DriverLocation->date = $data['date'];
-            $DriverLocation->latitude = $data['latitude'];
-            $DriverLocation->longitude = $data['longitude'];
-            $DriverLocation->driver_id = $trip->driver_id;
-            $DriverLocation->kelindan_id = $trip->kelindan_id;
-            $DriverLocation->lorry_id = $trip->lorry_id;
-            $DriverLocation->save();
+            $driverLocation = new DriverLocation();
+            $driverLocation->driver_id = $driver->id;
+            $driverLocation->lorry_id = $data['lorry_id'];
+            $driverLocation->latitude = $data['latitude'];
+            $driverLocation->longitude = $data['longitude'];
+            $driverLocation->date = date("Y-m-d H:i:s"); // Store current datetime
+            $driverLocation->save();
+
             return response()->json([
                 'result' => true,
                 'message' => __LINE__.$this->message_separator.'api.message.driver_location_had_been_updated_successfully',
-                'data' => $DriverLocation
+                'data' => $driverLocation
             ], 200);
         }
         catch(Exception $e){
@@ -364,7 +361,6 @@ class DriverController extends Controller
             }
             //validation
             $validator = Validator::make($request->all(), [
-                'kelindan_id' => 'nullable|numeric',
                 'lorry_id' => 'required|numeric'
             ]);
 
@@ -375,14 +371,7 @@ class DriverController extends Controller
                     'data' => null
                 ], 400);
             }
-            // $kelindan = Kelindan::where('id', $data['kelindan_id'])->first();
-            // if(empty($kelindan)){
-            //     return response()->json([
-            //         'result' => false,
-            //         'message' => __LINE__.$this->message_separator.'Invalid Kelindan',
-            //         'data' => null
-            //     ], 400);
-            // }
+           
             $lorry = Lorry::where('id', $data['lorry_id'])->first();
             if(empty($lorry)){
                 return response()->json([
@@ -398,38 +387,10 @@ class DriverController extends Controller
                     //insert trip
                     $newtrip = new Trip();
                     $newtrip->driver_id = $driver->id;
-                    $newtrip->kelindan_id = $data['kelindan_id'] ?? 0;
                     $newtrip->lorry_id = $data['lorry_id'];
                     $newtrip->type = 1;
                     $newtrip->date = date("Y-m-d H:i:s");
                     $newtrip->save();
-                    //generate task
-                    $assigns = Assign::where('driver_id', $driver->id)->orderby('sequence','asc')->get()->toarray();
-                    $count = 1;
-                    foreach($assigns as $assign){
-                        $task = new Task();
-                        $task->date = date("Y-m-d");
-                        $task->driver_id = $driver->id;
-                        $task->customer_id = $assign['customer_id'];
-                        $task->sequence = $count;
-                        $task->status = 0;
-                        $task->trip_id = $newtrip->id;
-                        $task->save();
-                        $count = $count + 1;
-                    }
-                    $invoices = Invoice::where('driver_id', $driver->id)->where('status',0)->where('date',date('Y-m-d'))->get()->toarray();
-                    foreach($invoices as $invoice){
-                        $task = new Task();
-                        $task->date = date("Y-m-d");
-                        $task->driver_id = $driver->id;
-                        $task->customer_id = $invoice['customer_id'];
-                        $task->invoice_id = $invoice['id'];
-                        $task->sequence = $count;
-                        $task->status = 0;
-                        $task->trip_id = $newtrip->id;
-                        $task->save();
-                        $count = $count + 1;
-                    }
                     return response()->json([
                         'result' => true,
                         'message' => __LINE__.$this->message_separator.'api.message.trip_had_been_started_successfully',
@@ -446,36 +407,11 @@ class DriverController extends Controller
                 //insert trip
                 $newtrip = new Trip();
                 $newtrip->driver_id = $driver->id;
-                $newtrip->kelindan_id = $data['kelindan_id'] ?? 0;
                 $newtrip->lorry_id = $data['lorry_id'];
                 $newtrip->type = 1;
                 $newtrip->date = date("Y-m-d H:i:s");
                 $newtrip->save();
-                //generate task
-                $assigns = Assign::where('driver_id', $driver->id)->orderby('sequence','asc')->get()->toarray();
-                $count = 1;
-                foreach($assigns as $assign){
-                    $task = new Task();
-                    $task->date = date("Y-m-d");
-                    $task->driver_id = $driver->id;
-                    $task->customer_id = $assign['customer_id'];
-                    $task->sequence = $count;
-                    $task->status = 0;
-                    $task->save();
-                    $count = $count + 1;
-                }
-                $invoices = Invoice::where('driver_id', $driver->id)->where('status',0)->where('date',date('Y-m-d'))->get()->toarray();
-                foreach($invoices as $invoice){
-                    $task = new Task();
-                    $task->date = date("Y-m-d");
-                    $task->driver_id = $driver->id;
-                    $task->customer_id = $invoice['customer_id'];
-                    $task->invoice_id = $invoice['id'];
-                    $task->sequence = $count;
-                    $task->status = 0;
-                    $task->save();
-                    $count = $count + 1;
-                }
+                
                 return response()->json([
                     'result' => true,
                     'message' => __LINE__.$this->message_separator.'api.message.trip_had_been_started_successfully',
@@ -500,19 +436,13 @@ class DriverController extends Controller
             if(empty($driver)){
                 return response()->json([
                     'result' => false,
-                    'message' => __LINE__.$this->message_separator.'Invalid session',
+                    'message' => __LINE__.$this->message_separator.'api.message.invalid_session',
                     'data' => null
                 ], 401);
             }
             //validation
             $validator = Validator::make($request->all(), [
-                'kelindan_id' => 'required|numeric',
                 'lorry_id' => 'required|numeric',
-                'cash' => 'required|numeric',
-                'advance_amount' => 'nullable|numeric',
-                'wastage' => 'present|array',
-                'wastage.*.product_id' => 'required|numeric',
-                'wastage.*.quantity' => 'required|numeric'
             ]);
             if ($validator->fails()) {
                 return response()->json([
@@ -521,22 +451,23 @@ class DriverController extends Controller
                     'data' => null
                 ], 400);
             }
-            // $kelindan = Kelindan::where('id', $data['kelindan_id'])->first();
-            // if(empty($kelindan)){
-            //     return response()->json([
-            //         'result' => false,
-            //         'message' => __LINE__.$this->message_separator.'Invalid Kelindan',
-            //         'data' => null
-            //     ], 400);
-            // }
             $lorry = Lorry::where('id', $data['lorry_id'])->first();
             if(empty($lorry)){
                 return response()->json([
                     'result' => false,
-                    'message' => __LINE__.$this->message_separator.'Invalid Lorry',
+                    'message' => __LINE__.$this->message_separator.'api.message.invalid_lorry',
                     'data' => null
                 ], 400);
             }
+            $task = Task::where('driver_id', $driver->id)->where('date',date('Y-m-d'))->whereIn('status',1)->first();
+            if($task){
+                return response()->json([
+                    'result' => false,
+                    'message' => __LINE__.$this->message_separator.'You have unfinished task, please complete it before ending the trip.1',
+                    'data' => null
+                ], 400);
+            }
+
             //process
             DB::beginTransaction();
             $trip = Trip::where('driver_id', $driver->id)->orderby('date','desc')->first();
@@ -551,46 +482,11 @@ class DriverController extends Controller
                 }else{
                     $newtrip = new Trip();
                     $newtrip->driver_id = $driver->id;
-                    $newtrip->kelindan_id = $data['kelindan_id'];
                     $newtrip->lorry_id = $data['lorry_id'];
-                    $newtrip->cash = $data['cash'];
-                    $newtrip->advance_amount = $data['advance_amount'] ?? 0;
                     $newtrip->type = 2;
                     $newtrip->date = date("Y-m-d H:i:s");
                     $newtrip->save();
-                    //cancelled task
-                    $task = Task::where('driver_id', $driver->id)->where('date',date('Y-m-d'))->whereIn('status',[0,1])->update(['status' => 9]);
-                    foreach($data["wastage"] as $wastage) {
-                        $inventorybalance = InventoryBalance::where('lorry_id',$trip->lorry_id)->where('product_id',$wastage['product_id'])->first();
-                        if(empty($inventorybalance)){
-                            DB::rollback();
-                            return response()->json([
-                                'result' => false,
-                                'message' => __LINE__.$this->message_separator.'Wastage quantity more than available quantity',
-                                'data' => null
-                            ], 400);
-                        }else{
-                            if($inventorybalance->quantity < $wastage["quantity"]){
-                                DB::rollback();
-                                return response()->json([
-                                    'result' => false,
-                                    'message' => __LINE__.$this->message_separator.'Wastage quantity more than available quantity',
-                                    'data' => null
-                                ], 400);
-                            }else{
-                                $inventorybalance->quantity = $inventorybalance->quantity - $wastage["quantity"];
-                                $inventorybalance->save();
-                                $inventorytransaction = New InventoryTransaction();
-                                $inventorytransaction->lorry_id = $trip->lorry_id;
-                                $inventorytransaction->product_id = $wastage["product_id"];
-                                $inventorytransaction->quantity = $wastage["quantity"] * -1;
-                                $inventorytransaction->type = 5;
-                                $inventorytransaction->date = date('Y-m-d H:i:s');
-                                $inventorytransaction->user = $driver->employeeid . " (" . $driver->name . ")";
-                                $inventorytransaction->save();
-                            }
-                        }
-                    }
+
                     DB::commit();
                     return response()->json([
                         'result' => true,
@@ -841,8 +737,11 @@ class DriverController extends Controller
                 ], 401);
             }
             //process
-            // $lorry = Lorry::where('status',1)->select('id','lorryno')->get()->toarray();
-            $lorry = DB::select("select l.id, l.lorryno from lorrys l left join ( select driver_id, type, lorry_id from trips where id in (select max(id) as id from trips group by driver_id) ) b on l.id = b.lorry_id and b.type = 1 where b.lorry_id is null;");
+            $lorry = Lorry::available() // This uses the scopeAvailable method
+                ->select('id', 'lorryno', 'jpj_registration')
+                ->get()
+                ->toArray();
+
             if(count($lorry) != 0){
                 return response()->json([
                     'result' => true,
@@ -867,102 +766,321 @@ class DriverController extends Controller
     }
 
     //Task
-    public function gettask(Request $request){
-        try{
+    public function gettask(Request $request)
+    {
+        try {
             $data = $request->all();
-            //check session
+            
+            // Check driver session
             $driver = Driver::where('session', $request->header('session'))->first();
-            if(empty($driver)){
+            if (empty($driver)) {
                 return response()->json([
                     'result' => false,
-                    'message' => __LINE__.$this->message_separator.'api.message.invalid_session',
+                    'message' => __LINE__ . $this->message_separator . 'api.message.invalid_session',
                     'data' => null
                 ], 401);
             }
-            //validate
-            $trip = Trip::where('driver_id', $driver->id)->orderby('date','desc')->first();
-            if(!empty($trip)){
-                if($trip->type == 2){
-                    return response()->json([
-                        'result' => false,
-                        'message' => __LINE__.$this->message_separator.'api.message.trip_had_not_started',
-                        'data' => null
-                    ], 400);
-                }
-            }else{
+
+            // Check if the driver has checkin or not 
+            $driverCheckIn = DriverCheckIn::where('driver_id', $driver->id)
+                ->where('type', DriverCheckIn::TYPE_CHECK_IN) 
+                ->whereDate('check_time', now()->format('Y-m-d'))
+                ->orderBy('check_time', 'desc') 
+                ->first();
+
+            if (empty($driverCheckIn)) {
                 return response()->json([
                     'result' => false,
-                    'message' => __LINE__.$this->message_separator.'api.message.trip_had_not_started',
+                    'message' => __LINE__ . $this->message_separator . 'Driver havent check in yet. Please check in first.',
                     'data' => null
                 ], 400);
             }
-            //process
-            $task = Task::where('driver_id', $driver->id)
-                ->where('date',date('Y-m-d'))
-                ->where(function ($query) use ($trip) {
-                    $query->where('trip_id', $trip->id)
-                        ->orWhere('trip_id', null);
-                })
-                // ->whereIn('trip_id',[NULL,$trip->id])
-                ->with('customer.activefoc')
-                ->with('invoice.invoicedetail.product:id,code,name')
-                ->get()->toarray();
-            if(count($task) != 0){
-                $message = true;
-                foreach($task as $c=>$t){
-                    if(asset($t['customer']['id'])){
-                        $task[$c]['customer']['credit'] = round(  (DB::select('call ice_spGetCustomerCreditByDate("'.date('Y-m-d H:i:s').'",'.$t['customer']['id'].');')[0]->credit ?? 0) ,2);
-                        // $task[$c]['customer']['credit'] = $t['customer']['id'];
-                        $task[$c]['customer']['product'] = DB::table('products')
-                            ->leftJoin('special_prices', function($join) use($t)
-                                {
-                                    $join->on('special_prices.customer_id','=',DB::raw("'".$t['customer']['id']."'"));
-                                    $join->on('special_prices.product_id', '=', 'products.id');
-                                    $join->on('special_prices.status', '=', DB::raw("'1'"));
-                                })
-                            ->where('products.status','1')
-                            ->select('products.id','products.code','products.name',DB::raw('coalesce(special_prices.price,products.price) as "price"'))
-                            ->get();
-                        $task[$c]['customer']['groupcompany'] = DB::table('companies')
-                            ->where('companies.group_id',explode(',',$t['customer']['group'])[0])
-                            ->select('companies.*')
-                            ->first() ?? null;
+
+            // Get today's tasks for the driver with delivery images
+            $tasks = Task::where('lorry_id', $driverCheckIn->lorry_id)
+                ->where('date', date('Y-m-d'))
+                ->with([
+                    'deliveryOrder.customer', 
+                    'deliveryOrder.product:id,code,name',
+                ])
+                ->get();
+
+            // Process tasks and add additional data
+            $processedTasks = [];
+            $hasTasks = $tasks->count() > 0;
+
+            if ($hasTasks) {
+                foreach ($tasks as $task) {
+                    // Convert status to string BEFORE converting to array
+                    if ($task->deliveryOrder) {
+                        $task->deliveryOrder->status = DeliveryOrder::$statusOptions[$task->deliveryOrder->status] ?? 'Unknown';
                     }
+                    
+                    if ($task->deliveryOrder && $task->deliveryOrder->customer) {
+                        $task->deliveryOrder->customer->status = ($task->deliveryOrder->customer->status == 1) ? 'Active' : 'Inactive';
+                    }
+
+                    // Now convert to array
+                    $taskData = $task->toArray();
+                    
+                    // Add delivery images only if task status is "Completed"
+                    if ($task->status === 'Completed' && $task->deliveryImage) {
+                        $taskData['delivery_images'] = [
+                            'delivery_order_image' => [
+                                'url' => $task->deliveryImage->delivery_order_image_url,
+                                'path' => $task->deliveryImage->delivery_order_image_path,
+                            ],
+                            'proof_of_delivery_image' => [
+                                'url' => $task->deliveryImage->proof_of_delivery_image_url,
+                                'path' => $task->deliveryImage->proof_of_delivery_image_path,
+                            ]
+                        ];
+                    } else {
+                        $taskData['delivery_images'] = null;
+                    }
+                    
+                    // Add customer credit and product information
+                    if (isset($taskData['deliveryOrder']['customer']['id'])) {
+                        $customerId = $taskData['deliveryOrder']['customer']['id'];
+                        
+                        // Get company group information
+                        if (isset($taskData['deliveryOrder']['customer']['group']) && !empty($taskData['deliveryOrder']['customer']['group'])) {
+                            $groupId = explode(',', $taskData['deliveryOrder']['customer']['group'])[0];
+                            $groupCompany = DB::table('companies')
+                                ->where('companies.group_id', $groupId)
+                                ->select('companies.*')
+                                ->first();
+
+                            if ($groupCompany) {
+                                $taskData['deliveryOrder']['customer']['groupcompany'] = (array) $groupCompany;
+                            } else {
+                                $taskData['deliveryOrder']['customer']['groupcompany'] = null;
+                            }
+                        } else {
+                            $taskData['deliveryOrder']['customer']['groupcompany'] = null;
+                        }
+                    }
+                    
+                    // Add timing information only for tasks with status "Delivering"
+                    if ($task->getStatusValue() === Task::STATUS_DELIVERING) {
+                        $taskData['countdown_minutes'] = $task->getCountdownInMinutes();
+                        $taskData['countdown_formatted'] = $task->getCountdownFormatted();
+                        $taskData['start_time'] = $task->start_time;
+                        $taskData['estimated_completion_time'] = $task->getEstimatedCompletionTime();
+                    } else {
+                        $taskData['countdown_minutes'] = null;
+                        $taskData['countdown_formatted'] = null;
+                        $taskData['start_time'] = null;
+                        $taskData['estimated_completion_time'] = null;
+                    }
+
+                    // Add is_late flag
+                    $taskData['is_late'] = $task->is_late ?? false;
+
+                    // Generate PDF URL for delivery order
+                    $pdfContent = null;
+                    if (isset($taskData['delivery_order_id'])) {
+                        $pdfContent = $this->generateDeliveryOrderPDF($taskData['delivery_order_id'], $taskData['id']);
+                    }
+                    $taskData['pdf_url'] = $pdfContent;
+                    
+                    $processedTasks[] = $taskData;
                 }
-            }else{
-                $message = false;
             }
-            $inventorybalance = InventoryBalance::where('lorry_id',$trip->lorry_id)->with('product')->get()->toarray();
-            if($message){
+        
+            if ($hasTasks) {
                 return response()->json([
                     'result' => true,
-                    'message' => __LINE__.$this->message_separator.'api.message.task_found',
+                    'message' => __LINE__ . $this->message_separator . 'api.message.task_found',
                     'data' => [
-                        'task' => $task,
-                        'stock' => $inventorybalance
+                        'tasks' => $processedTasks,
                     ]
                 ], 200);
-            }else{
+            } else {
                 return response()->json([
-                    'result' => false,
-                    'message' => __LINE__.$this->message_separator.'api.message.task_not_found',
+                    'result' => true,
+                    'message' => __LINE__ . $this->message_separator . 'api.message.task_not_found',
                     'data' => [
-                        'task' => null,
-                        'stock' => $inventorybalance
+                        'tasks' => [],
                     ]
                 ], 200);
-
             }
 
-        }
-        catch(Exception $e){
+        } catch (Exception $e) {
             return response()->json([
                 'result' => false,
-                'message' => __LINE__.$this->message_separator.$e->getMessage(),
+                'message' => __LINE__ . $this->message_separator . $e->getMessage(),
                 'data' => null
             ], 500);
         }
     }
+
+    public function gettaskDetails(Request $request)
+    {
+        try {
+            $data = $request->all();
+            
+            // Check driver session
+            $driver = Driver::where('session', $request->header('session'))->first();
+            if (empty($driver)) {
+                return response()->json([
+                    'result' => false,
+                    'message' => __LINE__ . $this->message_separator . 'api.message.invalid_session',
+                    'data' => null
+                ], 401);
+            }
+
+            // Check if driver has an active trip
+            $trip = Trip::where('driver_id', $driver->id)
+                ->where('type', 1) 
+                ->orderBy('date', 'desc')
+                ->first();
+
+            if (empty($trip)) {
+                return response()->json([
+                    'result' => false,
+                    'message' => __LINE__ . $this->message_separator . 'api.message.trip_had_not_started',
+                    'data' => null
+                ], 400);
+            }
+
+            // Get today's tasks for the driver with delivery images
+            $tasks = Task::where('driver_id', $driver->id)
+                ->where('id', $data['task_id'])
+                ->with([
+                    'deliveryOrder.customer', 
+                    'deliveryOrder.product:id,code,name',
+                ])
+                ->first();
+                
+            if (empty($tasks)) {
+                return response()->json([
+                    'result' => false,
+                    'message' => __LINE__ . $this->message_separator . 'api.message.task_not_found',
+                    'data' => [
+                        'task' => null,
+                    ]
+                ], 200);
+            }
+
+            // Convert status to string BEFORE converting to array
+            if ($tasks->deliveryOrder) {
+                $tasks->deliveryOrder->status = DeliveryOrder::$statusOptions[$tasks->deliveryOrder->status] ?? 'Unknown';
+            }
+            
+            if ($tasks->deliveryOrder && $tasks->deliveryOrder->customer) {
+                $tasks->deliveryOrder->customer->status = ($tasks->deliveryOrder->customer->status == 1) ? 'Active' : 'Inactive';
+            }
+
+            // Now convert to array
+            $taskData = $tasks->toArray();
+
+            // Add delivery images only if task status is "Completed"
+            if ($tasks->status === 'Completed' && $tasks->deliveryImage) {
+                $taskData['delivery_images'] = [
+                    'delivery_order_image' => [
+                        'url' => $tasks->deliveryImage->delivery_order_image_url,
+                        'path' => $tasks->deliveryImage->delivery_order_image_path,
+                    ],
+                    'proof_of_delivery_image' => [
+                        'url' => $tasks->deliveryImage->proof_of_delivery_image_url,
+                        'path' => $tasks->deliveryImage->proof_of_delivery_image_path,
+                    ]
+                ];
+            } else {
+                $taskData['delivery_images'] = null;
+            }
+                
+            // Add customer credit and product information
+            if (isset($taskData['deliveryOrder']['customer']['id'])) {
+                $customerId = $taskData['deliveryOrder']['customer']['id'];
+
+                // Get company group information
+                if (isset($taskData['deliveryOrder']['customer']['group']) && !empty($taskData['deliveryOrder']['customer']['group'])) {
+                    $groupId = explode(',', $taskData['deliveryOrder']['customer']['group'])[0];
+                    $groupCompany = DB::table('companies')
+                        ->where('companies.group_id', $groupId)
+                        ->select('companies.*')
+                        ->first();
+
+                    if ($groupCompany) {
+                        $taskData['deliveryOrder']['customer']['groupcompany'] = (array) $groupCompany;
+                    } else {
+                        $taskData['deliveryOrder']['customer']['groupcompany'] = null;
+                    }
+                } else {
+                    $taskData['deliveryOrder']['customer']['groupcompany'] = null;
+                }
+            }
+
+            // Add timing information only for tasks with status "Delivering"
+            if ($tasks->getStatusValue() === Task::STATUS_DELIVERING) {
+                $taskData['countdown_minutes'] = $tasks->getCountdownInMinutes();
+                $taskData['countdown_formatted'] = $tasks->getCountdownFormatted();
+                $taskData['estimated_completion_time'] = $tasks->getEstimatedCompletionTime();
+            } else {
+                $taskData['countdown_minutes'] = null;
+                $taskData['countdown_formatted'] = null;
+                $taskData['estimated_completion_time'] = null;
+            }
+            // Generate PDF URL for delivery order
+             $pdfContent = null;
+            if (isset($taskData['delivery_order_id'])) {
+                $pdfContent = $this->generateDeliveryOrderPDF($taskData['delivery_order_id'], $taskData['id']);
+            }
+            $taskData['pdf_url'] = $pdfContent;
+
+            return response()->json([
+                'result' => true,
+                'message' => __LINE__ . $this->message_separator . 'api.message.task_found',
+                'data' => [
+                    'task' => $taskData,
+                ]
+            ], 200);
+
+        } catch (Exception $e) {
+            return response()->json([
+                'result' => false,
+                'message' => __LINE__ . $this->message_separator . $e->getMessage(),
+                'data' => null
+            ], 500);
+        }
+    }
+
+    private function generateDeliveryOrderPDF($deliveryOrderId, $taskId = null)
+    {
+        try {
+            $deliveryOrder = DeliveryOrder::findOrFail($deliveryOrderId);
+            $company = $deliveryOrder->company;
+            
+            if ($taskId) {
+                $task = Task::find($taskId);
+                if ($task) {
+                    $deliveryOrder->this_load = $task->this_load;
+                }
+            }
+
+            $pdf = Pdf::loadView('delivery_orders.print', [
+                'deliveryOrder' => $deliveryOrder,
+                'company' => $company
+            ]);
+
+            $pdf->setPaper('A4', 'portrait')
+                ->setOptions([
+                    'isPhpEnabled' => true, 
+                    'isRemoteEnabled' => true,
+                    'defaultFont' => 'Arial'
+                ]);
+
+            // Return as base64 encoded string
+            return base64_encode($pdf->output());
+            
+        } catch (Exception $e) {
+            \Log::error('PDF Generation Error: ' . $e->getMessage());
+            return null;
+        }
+    }
+
 
     public function gettaskpage(Request $request){
         try{
@@ -1001,50 +1119,14 @@ class DriverController extends Controller
             //process
             $task = Task::where('driver_id', $driver->id)
                 ->where('date',date('Y-m-d'))
-                //->where('status','!=',9)
-                //->where('status','!=',0)
-                ->where(function ($query) use ($trip) {
-                    $query->where('trip_id', $trip->id)
-                        ->orWhere('trip_id', null);
-                })
-                // ->whereIn('trip_id',[NULL,$trip->id])
-                ->with('customer.activefoc')
-                ->with('invoice.invoicedetail.product:id,code,name')
                 ->paginate($size);
 
-            if(count($task) != 0){
-                $message = true;
-                foreach($task as $c=>$t){
-                    if(asset($t['customer']['id'])){
-                        $task[$c]['customer']['credit'] = round(  (DB::select('call ice_spGetCustomerCreditByDate("'.date('Y-m-d H:i:s').'",'.$t['customer']['id'].');')[0]->credit ?? 0) ,2);
-                        // $task[$c]['customer']['credit'] = $t['customer']['id'];
-                        $task[$c]['customer']['product'] = DB::table('products')
-                            ->leftJoin('special_prices', function($join) use($t)
-                                {
-                                    $join->on('special_prices.customer_id','=',DB::raw("'".$t['customer']['id']."'"));
-                                    $join->on('special_prices.product_id', '=', 'products.id');
-                                    $join->on('special_prices.status', '=', DB::raw("'1'"));
-                                })
-                            ->where('products.status','1')
-                            ->select('products.id','products.code','products.name',DB::raw('coalesce(special_prices.price,products.price) as "price"'))
-                            ->get();
-                        $task[$c]['customer']['groupcompany'] = DB::table('companies')
-                            ->where('companies.group_id',explode(',',$t['customer']['group'])[0])
-                            ->select('companies.*')
-                            ->first() ?? null;
-                    }
-                }
-            }else{
-                $message = false;
-            }
-            $inventorybalance = InventoryBalance::where('lorry_id',$trip->lorry_id)->with('product')->get()->toarray();
-            if($message){
+            if($task){
                 return response()->json([
                     'result' => true,
                     'message' => __LINE__.$this->message_separator.'api.message.task_found',
                     'data' => [
                         'task' => $task,
-                        'stock' => $inventorybalance
                     ]
                 ], 200);
             }else{
@@ -1053,7 +1135,6 @@ class DriverController extends Controller
                     'message' => __LINE__.$this->message_separator.'api.message.task_not_found',
                     'data' => [
                         'task' => null,
-                        'stock' => $inventorybalance
                     ]
                 ], 200);
 
@@ -3441,5 +3522,1208 @@ class DriverController extends Controller
                 'data' => $result
             ], 200);
        
+    }  
+    
+    //New function 
+    public function getNotifications(Request $request)
+    {
+        try {
+            $driver = Driver::where('session', $request->header('session'))->first();
+            if(empty($driver)){
+                return response()->json([
+                    'result' => false,
+                    'message' => __LINE__.$this->message_separator.'api.message.invalid_session',
+                    'data' => null
+                ], 401);
+            }
+
+            $notifications = DriverNotifications::where('driver_id', $driver->id)
+                ->orderBy('created_at', 'desc')
+                ->take(50) // Last 50 notifications
+                ->get();
+
+            return response()->json([
+                'result' => true,
+                'message' => 'Notifications retrieved',
+                'data' => [
+                    'notifications' => $notifications,
+                ]
+            ], 200);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'result' => false,
+                'message' => 'Error retrieving notifications',
+                'data' => null
+            ], 500);
+        }
+    }
+
+    public function markAsRead(Request $request)
+    {
+        try {
+            $driver = Driver::where('session', $request->header('session'))->first();
+            if (empty($driver)) {
+                return response()->json([
+                    'result' => false,
+                    'message' => 'Invalid session',
+                    'data' => null
+                ], 401);
+            }
+
+            $validator = Validator::make($request->all(), [
+                'notification_id' => 'required|exists:driver_notifications,id'
+            ]);
+          
+            // Check if validation fails
+            if ($validator->fails()) {
+                return response()->json([
+                    'result' => false,
+                    'message' => 'Validation failed',
+                    'errors' => $validator->errors(),
+                    'data' => null
+                ], 422);
+            }
+
+            $notification = DriverNotifications::where('id', $request->notification_id)
+                ->where('driver_id', $driver->id)
+                ->first();
+
+            if ($notification) {
+                $notification->update([
+                    'is_read' => true,
+                    'read_at' => now()
+                ]);
+            }
+
+            return response()->json([
+                'result' => true,
+                'message' => 'Notification marked as read',
+                'data' => null
+            ], 200);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'result' => false,
+                'message' => 'Error marking notification as read',
+                'data' => null
+            ], 500);
+        }
+    }
+
+    public function registerFCMToken(Request $request)
+    {
+        try {
+
+            $driver = Driver::where('session', $request->header('session'))->first();
+            if (empty($driver)) {
+                return response()->json([
+                    'result' => false,
+                    'message' => 'Invalid session',
+                    'data' => null
+                ], 401);
+            }
+            $validator = Validator::make($request->all(), [
+                'fcm_token' => 'required|string',
+            ]);
+
+            if ($validator->fails()) {
+                return response()->json([
+                    'result' => false,
+                    'message' => 'Validation failed',
+                    'errors' => $validator->errors(),
+                    'data' => null
+                ], 422);
+            }
+            // Update driver with FCM token
+            $driver->update([
+                'fcm_token' => $request->fcm_token,
+                'fcm_token_updated_at' => now(),
+            ]);
+
+            return response()->json([
+                'result' => true,
+                'message' => 'FCM token registered successfully',
+                'data' => null
+            ], 200);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'result' => false,
+                'message' => 'Failed to register FCM token: ' . $e->getMessage(),
+                'data' => null
+            ], 500);
+        }
+    }
+
+    public function removeFCMToken(Request $request)
+    {
+        try {
+            $driver = Driver::where('session', $request->header('session'))->first();
+            if (empty($driver)) {
+                return response()->json([
+                    'result' => false,
+                    'message' => 'Invalid session',
+                    'data' => null
+                ], 401);
+            }
+
+            // Remove FCM token
+            $driver->update([
+                'fcm_token' => null,
+                'fcm_token_updated_at' => null,
+            ]);
+
+            return response()->json([
+                'result' => true,
+                'message' => 'FCM token removed successfully',
+                'data' => null
+            ], 200);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'result' => false,
+                'message' => 'Failed to remove FCM token: ' . $e->getMessage(),
+                'data' => null
+            ], 500);
+        }
+    }
+
+    public function bulkCheckInOut(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'check_records' => 'required|array',
+            'check_records.*.timestamp' => 'required|numeric', 
+            'check_records.*.latitude' => 'required|numeric',
+            'check_records.*.longitude' => 'required|numeric',
+            'check_records.*.action' => 'required|in:checkin,checkout',
+            'check_records.*.lorry_id' => 'nullable|sometimes|numeric', 
+        ]);
+
+        // Check if validation fails
+        if ($validator->fails()) {
+            return response()->json([
+                'result' => false,
+                'message' => 'Validation failed',
+                'errors' => $validator->errors(),
+                'data' => null
+            ], 422);
+        }
+
+        $driver = Driver::where('session', $request->header('session'))->first();
+        if (empty($driver)) {
+            return response()->json([
+                'result' => false,
+                'message' => 'Invalid session',
+                'data' => null
+            ], 401);
+        }
+
+        return $this->handleBulkCheckAction($request, $driver);
+    }
+
+    private function handleBulkCheckAction(Request $request, $driver)
+    {
+        try {
+            $driver_id = $driver->id;
+            $checkRecords = $request->input('check_records');
+            $createdRecords = [];
+            $errors = [];
+            $skippedRecords = [];
+
+            // Sort records by timestamp to ensure chronological processing
+            usort($checkRecords, function($a, $b) {
+                return $a['timestamp'] <=> $b['timestamp'];
+            });
+
+            foreach ($checkRecords as $index => $record) {
+                try {
+                    $timestamp = $record['timestamp'];
+                    $latitude = $record['latitude'];
+                    $longitude = $record['longitude'];
+                    $action = $record['action'];
+                    $lorryId = $record['lorry_id'];
+
+                    // Convert timestamp to datetime
+                    $timestampInSeconds = intval($timestamp / 1000);
+
+                    // Convert timestamp to datetime
+                    $checkTime = \Carbon\Carbon::createFromTimestamp($timestampInSeconds);
+                    // Determine the type based on action
+                    $type = ($action === 'checkin') ? DriverCheckIn::TYPE_CHECK_IN : DriverCheckIn::TYPE_CHECK_OUT;
+
+                    $lastRecord = DriverCheckIn::where('driver_id', $driver_id)
+                    ->orderBy('check_time', 'desc')
+                    ->first();
+
+                    // Handle lorry_id based on action
+                    if ($action === 'checkin') {
+                        // For check-in, lorry_id is required
+                        if (!isset($record['lorry_id'])) {
+                            $errors[] = "Record {$index}: Lorry ID is required for check-in";
+                            continue;
+                        }
+                        $lorryId = $record['lorry_id'];
+                    } else {
+                        // For check-out, get lorry_id from last check-in record
+                        if (!$lastRecord || $lastRecord->type !== DriverCheckIn::TYPE_CHECK_IN) {
+                            $errors[] = "Record {$index}: No previous check-in found. Cannot determine lorry for check-out";
+                            continue;
+                        }
+                        $lorryId = $lastRecord->lorry_id;
+                    }
+                    
+                    // Check for duplicate record (same driver, lorry, action, and timestamp within 30 seconds)
+                    $existingRecord = DriverCheckIn::where('driver_id', $driver_id)
+                        ->where('lorry_id', $lorryId)
+                        ->where('type', $type)
+                        ->whereBetween('check_time', [
+                            $checkTime->copy()->subSeconds(30),
+                            $checkTime->copy()->addSeconds(30)
+                        ])
+                        ->first();
+
+                    if ($existingRecord) {
+                        $skippedRecords[] = [
+                            'index' => $index,
+                            'task_id' => $record['task_id'] ?? null,
+                            'action' => $action,
+                            'status' => 'skipped',
+                            'message' => 'Duplicate record already exists'
+                        ];
+                        continue;
+                    }
+
+                    // Validate lorry exists
+                    $lorry = Lorry::find($lorryId);
+                    if (!$lorry) {
+                        $errors[] = "Record {$index}: Lorry not found";
+                        continue;
+                    }
+
+                    // Validate check-in/check-out sequence
+                    if ($action === 'checkin') {
+                        // For check-in: Verify that the last action was a check-out or no previous records
+                        if ($lastRecord && $lastRecord->type !== DriverCheckIn::TYPE_CHECK_OUT) {
+                            $errors[] = "Record {$index}: You must check out before checking in again";
+                            continue;
+                        }
+                        
+                        // Check if lorry is already in use by another driver
+                        if ($lorry->in_use) {
+                            $errors[] = "Record {$index}: Lorry is already in use by another driver";
+                            continue;
+                        }
+                    }
+
+                    if ($action === 'checkout') {
+                        // For check-out: Verify that the last action was a check-in
+                        if (!$lastRecord || $lastRecord->type !== DriverCheckIn::TYPE_CHECK_IN) {
+                            $errors[] = "Record {$index}: You must check in before checking out";
+                            continue;
+                        }
+
+                        // Verify that the checkout is for the same lorry as the last check-in
+                        if ($lastRecord->lorry_id != $lorryId) {
+                            $errors[] = "Record {$index}: Check-out must be for the same lorry as your last check-in (Lorry ID: {$lastRecord->lorry_id})";
+                            continue;
+                        }
+                    }
+
+                    // Create the record
+                    $createdRecord = DriverCheckIn::create([
+                        'driver_id' => $driver_id,
+                        'lorry_id' => $lorryId,
+                        'type' => $type,
+                        'latitude' => $latitude,
+                        'longitude' => $longitude,
+                        'check_time' => $checkTime,
+                    ]);
+
+                    // Update lorry in_use status
+                    if ($action === 'checkin') {
+                        $lorry->markAsInUse();
+                    } else {
+                        $lorry->markAsAvailable();
+                    }
+
+                    $createdRecords[] = $createdRecord;
+
+                } catch (\Exception $e) {
+                    $errors[] = "Record {$index}: " . $e->getMessage();
+                }
+            }
+
+            $response = [
+                'result' => true,
+                'message' => 'Bulk check-in/check-out processing completed',
+                'data' => [
+                    'processed_count' => count($checkRecords),
+                    'success_count' => count($createdRecords),
+                    'failed_count' => count($errors),
+                    'skipped_count' => count($skippedRecords),
+                    'records' => $createdRecords,
+                    'skipped_records' => $skippedRecords
+                ]
+            ];
+
+            if (!empty($errors)) {
+                $response['errors'] = $errors;
+            }
+
+            $statusCode = (count($errors) === count($checkRecords)) ? 422 : 
+                        (count($errors) > 0 ? 207 : 200);
+
+            return response()->json($response, $statusCode);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'result' => false,
+                'message' => 'Bulk check-in/check-out failed',
+                'error' => $e->getMessage(),
+                'data' => null
+            ], 500);
+        }
+    }
+
+    public function getDriverStatus(Request $request)
+    {
+        $driver = Driver::where('session', $request->header('session'))->first();
+        if (empty($driver)) {
+            return response()->json([
+                'result' => false,
+                'message' => 'Invalid session',
+                'data' => null
+            ], 401);
+        }
+        
+        try {
+             $driver_id = $driver->id;
+
+            // Check if user already performed this action for this task
+            $lastRecord = DriverCheckIn::where('driver_id', $driver_id)
+            ->orderBy('check_time', 'desc')
+            ->first();   
+            if (!$lastRecord) {
+                return response()->json([
+                    'result' => false,
+                    'message' => 'No check-in/check-out records found',
+                    'data' => null
+                ], 422);
+            }
+            return response()->json([
+                'result' => true,
+                'message' => 'Driver status retrieved successfully',
+                'data' => $lastRecord,
+            ], 200);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'result' => false,
+                'message' => 'Get Driver status failed: ' . $e->getMessage(),
+                'data' => null
+            ], 500);
+        }
     }   
-}
+
+    public function startDelivery(Request $request)
+    {
+        $driver = Driver::where('session', $request->header('session'))->first();
+        if (empty($driver)) {
+            return response()->json([
+                'result' => false,
+                'message' => 'Invalid session',
+                'data' => null
+            ], 401);
+        }
+        
+        $validator = Validator::make($request->all(), [
+            'task_id' => 'required|numeric',
+            'lorry_id' => 'required|numeric',
+        ]);
+        
+        if ($validator->fails()) {
+            return response()->json([
+                'result' => false,
+                'message' => 'Validation failed',
+                'errors' => $validator->errors(),
+                'data' => null
+            ], 422);
+        }
+
+        $taskId = $request->input('task_id');
+        $lorryId = $request->input('lorry_id');
+
+        try {
+            // Find the task
+            $task = Task::where('id', $taskId)
+                ->where('lorry_id', $lorryId)
+                ->first();
+
+            if (!$task) {
+                return response()->json([
+                    'result' => false,
+                    'message' => 'Task not found',
+                    'data' => null
+                ], 404);
+            }
+
+            // Check if task can be started (status should be 0 - New)
+            if ($task->getStatusValue() != Task::STATUS_NEW) {
+                return response()->json([
+                    'result' => false,
+                    'message' => 'Task cannot be started. Current status: ' . $task->status,
+                    'data' => null
+                ], 422);
+            }
+
+            // Start the delivery
+            $started = $task->startTrip();
+
+            $task['driver_id'] = $driver->id;
+            $task->save();
+
+            Trip::create([
+                'date' => now(),
+                'driver_id' => $driver->id,
+                'lorry_id' => $lorryId,
+                'task_id' => $taskId,
+                'type' => 1, 
+            ]);
+
+            if ($started) {
+                return response()->json([
+                    'result' => true,
+                    'message' => 'Delivery started successfully',
+                    'data' => [
+                        'task' => $task,
+                        'countdown_minutes' => $task->getCountdownInMinutes(),
+                        'countdown_formatted' => $task->getCountdownFormatted(),
+                        'start_time' => $task->start_time,
+                        'estimated_completion_time' => $task->getEstimatedCompletionTime(),
+                    ]
+                ], 200);
+            } else {
+                return response()->json([
+                    'result' => false,
+                    'message' => 'Failed to start delivery',
+                    'data' => null
+                ], 500);
+            }
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'result' => false,
+                'message' => 'Start delivery failed: ' . $e->getMessage(),
+                'data' => null
+            ], 500);
+        }
+    }   
+
+    public function completeDelivery(Request $request)
+    {
+        try {
+            // Validate session
+            $driver = Driver::where('session', $request->header('session'))->first();
+            if (empty($driver)) {
+                return response()->json([
+                    'result' => false,
+                    'message' => 'Invalid session',
+                    'data' => null
+                ], 401);
+            }
+
+            // Validate request
+            $validator = Validator::make($request->all(), [
+                'task_id' => 'required|numeric',
+                'lorry_id' => 'required|numeric',
+                'delivery_order_image' => 'required|image|mimes:jpeg,png,jpg,gif|max:2048',
+                'proof_of_delivery_image' => 'required|image|mimes:jpeg,png,jpg,gif|max:2048',
+            ]);
+
+            if ($validator->fails()) {
+                return response()->json([
+                    'result' => false,
+                    'message' => 'Validation failed',
+                    'errors' => $validator->errors(),
+                    'data' => null
+                ], 422);
+            }
+            $taskId = $request->input('task_id');
+            $lorryId = $request->input('lorry_id');
+
+            // Find the task
+            $task = Task::where('id', $taskId)
+                ->where('driver_id', $driver->id)
+                ->first();
+
+            if (!$task) {
+                return response()->json([
+                    'result' => false,
+                    'message' => 'Task not found',
+                    'data' => null
+                ], 404);
+            }
+
+            // Check if task can be completed (status should be 1 - Delivering)
+            if ($task->getStatusValue() !== Task::STATUS_DELIVERING) {
+                return response()->json([
+                    'result' => false,
+                    'message' => 'Task cannot be completed. Current status: ' . $task->status,
+                    'data' => null
+                ], 422);
+            }
+
+            // Upload images and get file details
+            $deliveryOrderImageDetails = null;
+            $proofOfDeliveryImageDetails = null;
+
+            if ($request->hasFile('delivery_order_image')) {
+                $deliveryOrderImageFile = $request->file('delivery_order_image');
+                $deliveryOrderImagePath = $deliveryOrderImageFile->store('delivery-images', 'public');
+                
+                $deliveryOrderImageDetails = [
+                    'url' => asset($deliveryOrderImagePath),
+                    'path' => $deliveryOrderImagePath,
+                    'original_name' => $deliveryOrderImageFile->getClientOriginalName(),
+                    'size' => $deliveryOrderImageFile->getSize(),
+                    'mime_type' => $deliveryOrderImageFile->getMimeType(),
+                    'uploaded_at' => now()->toDateTimeString(),
+                ];
+            }
+
+            if ($request->hasFile('proof_of_delivery_image')) {
+                $proofOfDeliveryImageFile = $request->file('proof_of_delivery_image');
+                $proofOfDeliveryImagePath = $proofOfDeliveryImageFile->store('proof-of-delivery', 'public');
+                
+                $proofOfDeliveryImageDetails = [
+                    'url' => asset($proofOfDeliveryImagePath),
+                    'path' => $proofOfDeliveryImagePath,
+                    'original_name' => $proofOfDeliveryImageFile->getClientOriginalName(),
+                    'size' => $proofOfDeliveryImageFile->getSize(),
+                    'mime_type' => $proofOfDeliveryImageFile->getMimeType(),
+                    'uploaded_at' => now()->toDateTimeString(),
+                ];
+            }
+
+            // End the trip (this updates status to completed but doesn't change progress)
+            // Progress was already added when task was created
+            $ended = $task->endTrip();
+
+            if (!$ended) {
+                return response()->json([
+                    'result' => false,
+                    'message' => 'Failed to complete delivery',
+                    'data' => null
+                ], 500);
+            }
+
+            // Check if trip already ended (admin might have ended it)
+            $existingEndTrip = Trip::where('task_id', $taskId)
+                ->where('driver_id', $driver->id)
+                ->where('lorry_id', $lorryId)
+                ->where('type', 0) // End trip
+                ->first();
+
+            if ($existingEndTrip) {
+                // Update the existing end trip date to now
+                $existingEndTrip->update([
+                    'date' => now()
+                ]);
+            } else {
+                // Create new end trip record
+                Trip::create([
+                    'date' => now(),
+                    'driver_id' => $driver->id,
+                    'lorry_id' => $lorryId,
+                    'task_id' => $taskId,
+                    'type' => 0, 
+                ]);
+            }
+
+            // Save delivery images
+            $deliveryImage = DeliveryImage::updateOrCreate(
+                ['task_id' => $task->id],
+                [
+                    'delivery_order_image_path' => $deliveryOrderImagePath ?? null,
+                    'proof_of_delivery_image_path' => $proofOfDeliveryImagePath ?? null,
+                ]
+            );
+
+            return response()->json([
+                'result' => true,
+                'message' => 'Delivery completed successfully',
+                'data' => [
+                    'task' => $task,
+                    'submitted_images' => [
+                        'delivery_order_image' => $deliveryOrderImageDetails,
+                        'proof_of_delivery_image' => $proofOfDeliveryImageDetails,
+                    ],
+                    'completion_details' => [
+                        'end_time' => $task->end_time,
+                        'time_taken' => $task->time_taken,
+                        'time_taken_formatted' => $task->getTimeTakenFormatted(),
+                        'is_late' => $task->is_late,
+                        'completion_time' => now()->toDateTimeString(),
+                    ],
+                    // IMPORTANT: No progress update here - already done when task was created
+                    'progress_info' => [
+                        'delivery_order_progress' => $task->deliveryOrder->progress_total ?? 0,
+                        'total_order' => $task->deliveryOrder->total_order ?? 0,
+                        'this_load' => $task->this_load,
+                        'note' => 'Progress was already added when task was created'
+                    ]
+                ]
+            ], 200);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'result' => false,
+                'message' => 'Complete delivery failed: ' . $e->getMessage(),
+                'data' => null
+            ], 500);
+        }
+    }
+
+    public function returnDelivery(Request $request)
+    {
+        try {
+            // Validate session
+            $driver = Driver::where('session', $request->header('session'))->first();
+            if (empty($driver)) {
+                return response()->json([
+                    'result' => false,
+                    'message' => 'Invalid session',
+                    'data' => null
+                ], 401);
+            }
+
+            // Validate request
+            $validator = Validator::make($request->all(), [
+                'task_id' => 'required|numeric',
+                'lorry_id' => 'required|numeric',
+                'return_reason' => 'required|string|max:255',
+                'return_remarks' => 'nullable|string|max:500',
+            ]);
+
+            if ($validator->fails()) {
+                return response()->json([
+                    'result' => false,
+                    'message' => 'Validation failed',
+                    'errors' => $validator->errors(),
+                    'data' => null
+                ], 422);
+            }
+            $taskId = $request->input('task_id');
+            $lorryId = $request->input('lorry_id');
+
+            // Find the task
+            $task = Task::where('id', $taskId)
+                ->where('driver_id', $driver->id)
+                ->first();
+
+            if (!$task) {
+                return response()->json([
+                    'result' => false,
+                    'message' => 'Task not found',
+                    'data' => null
+                ], 404);
+            }
+
+            // Check if task can be returned
+            if (!$task->canReturn()) {
+                return response()->json([
+                    'result' => false,
+                    'message' => 'Task cannot be returned. Current status: ' . $task->status,
+                    'data' => null
+                ], 422);
+            }
+
+            $returned = $task->markAsReturned(
+                $request->return_reason,
+                $request->return_remarks,
+                now()
+            );
+            
+            if (!$returned) {
+                return response()->json([
+                    'result' => false,
+                    'message' => 'Failed to mark delivery as returned',
+                    'data' => null
+                ], 500);
+            }
+
+            Trip::create([
+                'date' => now(),
+                'driver_id' => $driver->id,
+                'lorry_id' => $lorryId,
+                'task_id' => $taskId,
+                'type' => 0, 
+            ]);
+
+            // Refresh task to get updated delivery order progress
+            $task->refresh();
+            $deliveryOrder = $task->deliveryOrder;
+
+            return response()->json([
+                'result' => true,
+                'message' => 'Delivery marked as returned successfully',
+                'data' => [
+                    'task' => $task,
+                    'return_details' => [
+                        'return_reason' => $task->return_reason,
+                        'return_remarks' => $task->return_remarks,
+                        'effective_delivered_quantity' => $task->getEffectiveDeliveredQuantity(),
+                    ],
+                    'progress_update' => [
+                        'previous_progress' => ($deliveryOrder->progress_total + $task->this_load) ?? 0,
+                        'current_progress' => $deliveryOrder->progress_total ?? 0,
+                        'deducted_amount' => $task->this_load,
+                        'delivery_order_status' => $deliveryOrder->status ?? 'N/A',
+                        'note' => 'Progress deducted for returned task'
+                    ]
+                ]
+            ], 200);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'result' => false,
+                'message' => 'Return delivery failed: ' . $e->getMessage(),
+                'data' => null
+            ], 500);
+        }
+    }
+
+
+    public function bulkDelivery(Request $request)
+    {   
+        
+        $validator = Validator::make($request->all(), [
+            'delivery_records' => 'sometimes|array',
+            'delivery_records.*.task_id' => 'required|numeric',
+            'delivery_records.*.timestamp' => 'required|numeric',
+            'delivery_records.*.action' => 'required|in:start,submit,return',
+            'delivery_records.*.lorry_id' => 'required|numeric', 
+            'delivery_records.*.delivery_order_image' => 'sometimes|required_if:delivery_records.*.action,submit|image|mimes:jpeg,png,jpg,gif|max:2048',
+            'delivery_records.*.proof_of_delivery_image' => 'sometimes|required_if:delivery_records.*.action,submit|image|mimes:jpeg,png,jpg,gif|max:2048',
+            'delivery_records.*.return_reason' => 'required_if:delivery_records.*.action,return|string|max:255',
+            'delivery_records.*.return_remarks' => 'nullable|string|max:500',
+        ]);
+
+        // Check if validation fails
+        if ($validator->fails()) {
+            return response()->json([
+                'result' => false,
+                'message' => 'Validation failed',
+                'errors' => $validator->errors(),
+                'data' => null
+            ], 422);
+        }
+
+        $driver = Driver::where('session', $request->header('session'))->first();
+        if (empty($driver)) {
+            return response()->json([
+                'result' => false,
+                'message' => 'Invalid session',
+                'data' => null
+            ], 401);
+        }   
+
+        $deliveryRecords = $request->input('delivery_records', []);
+    
+        // Handle empty array
+        if (empty($deliveryRecords)) {
+            return response()->json([
+                'result' => true,
+                'message' => 'No delivery records to process',
+                'data' => [
+                    'processed_count' => 0,
+                    'success_count' => 0,
+                    'failed_count' => 0,
+                    'skipped_count' => 0,
+                    'records' => []
+                ]
+            ], 200);
+        }
+        
+        return $this->handleBulkDeliveryAction($request, $driver);
+    }
+
+    private function handleBulkDeliveryAction(Request $request, $driver)
+    {
+        try {
+            $driver_id = $driver->id;
+            $deliveryRecords = $request->input('delivery_records');
+            $processedRecords = [];
+            $errors = [];
+
+            foreach ($deliveryRecords as $index => $record) {
+                try {
+                    $taskId = $record['task_id'];
+                    $timestamp = $record['timestamp'];
+                    $action = $record['action'];
+
+                    $deliveryOrderImage = $request->file("delivery_records.{$index}.delivery_order_image");
+                    $proofOfDeliveryImage = $request->file("delivery_records.{$index}.proof_of_delivery_image");
+                    
+                    // Replace the file info with actual file objects in the record
+                    if ($deliveryOrderImage) {
+                        $record['delivery_order_image'] = $deliveryOrderImage;
+                    }
+                    if ($proofOfDeliveryImage) {
+                        $record['proof_of_delivery_image'] = $proofOfDeliveryImage;
+                    }
+                    
+                    // Convert timestamp to datetime
+                    $timestampInSeconds = intval($timestamp / 1000);
+
+                    // Convert timestamp to datetime
+                    $actionTime = \Carbon\Carbon::createFromTimestamp($timestampInSeconds);
+                    // Find the task
+                    $task = Task::where('id', $taskId)
+                        ->first();
+
+                    if (!$task) {
+                        $errors[] = "Record {$index}: Task not found";
+                        $processedRecords[] = [
+                            'index' => $index,
+                            'task_id' => $taskId,
+                            'action' => $action,
+                            'status' => 'failed',
+                            'error' => 'Task not found'
+                        ];
+                        continue;
+                    }
+
+                    // Check if action is already completed (skip duplicates)
+                    if ($this->isActionAlreadyCompleted($task, $action)) {
+                        $processedRecords[] = [
+                            'index' => $index,
+                            'task_id' => $taskId,
+                            'action' => $action,
+                            'status' => 'skipped',
+                            'message' => 'Action already completed'
+                        ];
+                        continue;
+                    }
+
+                    // Handle different actions
+                    if ($action === 'start') {
+                        $result = $this->processDeliveryStart($task, $record, $driver, $actionTime);
+                    } elseif ($action === 'submit') {
+                        $result = $this->processDeliverySubmission($task, $record, $driver, $actionTime);
+                    } else {
+                        $result = $this->processDeliveryReturn($task, $record, $driver, $actionTime);
+                    }
+
+                    if ($result['success']) {
+                        $processedRecords[] = [
+                            'index' => $index,
+                            'task_id' => $taskId,
+                            'action' => $action,
+                            'status' => 'success',
+                            'data' => $result['data']
+                        ];
+                    } else {
+                        $errors[] = "Record {$index}: " . $result['message'];
+                        $processedRecords[] = [
+                            'index' => $index,
+                            'task_id' => $taskId,
+                            'action' => $action,
+                            'status' => 'failed',
+                            'error' => $result['message']
+                        ];
+                    }
+
+                } catch (\Exception $e) {
+                    $errors[] = "Record {$index}: " . $e->getMessage();
+                    $processedRecords[] = [
+                        'index' => $index,
+                        'task_id' => $taskId ?? 'unknown',
+                        'action' => $action ?? 'unknown',
+                        'status' => 'failed',
+                        'error' => $e->getMessage()
+                    ];
+                }
+            }
+
+            $response = [
+                'result' => true,
+                'message' => 'Bulk delivery processing completed',
+                'data' => [
+                    'processed_count' => count($processedRecords),
+                    'success_count' => count(array_filter($processedRecords, function($item) {
+                        return $item['status'] === 'success';
+                    })),
+                    'failed_count' => count(array_filter($processedRecords, function($item) {
+                        return $item['status'] === 'failed';
+                    })),
+                    'skipped_count' => count(array_filter($processedRecords, function($item) {
+                        return $item['status'] === 'skipped';
+                    })),
+                    'processed_records' => $processedRecords
+                ]
+            ];
+
+            if (!empty($errors)) {
+                $response['errors'] = $errors;
+            }
+
+            $statusCode = (count($errors) === count($deliveryRecords)) ? 422 : 
+                        (count($errors) > 0 ? 207 : 200);
+
+            return response()->json($response, $statusCode);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'result' => false,
+                'message' => 'Bulk delivery processing failed',
+                'error' => $e->getMessage(),
+                'data' => null
+            ], 500);
+        }
+    }
+
+    /**
+     * Check if the action is already completed to prevent duplicates
+     */
+    private function isActionAlreadyCompleted($task, $action)
+    {
+        $currentStatus = $task->getStatusValue();
+        
+        switch ($action) {
+            case 'start':
+                // If task is already delivering or completed/returned, start is already done
+                return $currentStatus !== Task::STATUS_NEW;
+                
+            case 'submit':
+                // If task is already completed, submit is already done
+                return $currentStatus === Task::STATUS_COMPLETED;
+                
+            case 'return':
+                // If task is already returned, return is already done
+                return $currentStatus === Task::STATUS_RETURNED;
+                
+            default:
+                return false;
+        }
+    }
+
+    private function processDeliveryStart($task, $record, $driver, $actionTime)
+    {
+        // Check if task can be started (status should be 0 - New)
+        if ($task->getStatusValue() !== Task::STATUS_NEW) {
+            return [
+                'success' => false,
+                'message' => 'Task cannot be started. Current status: ' . $task->status
+            ];
+        }
+
+        // Validate lorry_id exists
+        $lorryId = $record['lorry_id'] ?? null;
+        if (!$lorryId) {
+            return [
+                'success' => false,
+                'message' => 'Lorry ID is required'
+            ];
+        }
+
+        $lorry = Lorry::find($lorryId);
+        if (!$lorry) {
+            return [
+                'success' => false,
+                'message' => 'Invalid lorry ID'
+            ];
+        }
+
+        // Start the delivery with provided timestamp
+        $started = $task->startTrip($actionTime);
+
+        if (!$started) {
+            return [
+                'success' => false,
+                'message' => 'Failed to start delivery'
+            ];
+        }
+
+        // Store driver_id in the task
+        $task->driver_id = $driver->id;
+        $task->save();
+
+
+        // Create trip record with lorry_id and action time
+        Trip::create([
+            'date' => $actionTime,
+            'driver_id' => $driver->id,
+            'lorry_id' => $lorryId,
+            'task_id' => $task->id,
+            'type' => 1, 
+        ]);
+
+        return [
+            'success' => true,
+            'message' => 'Delivery started successfully',
+            'data' => [
+                'task' => $task,
+                'countdown_minutes' => $task->getCountdownInMinutes(),
+                'countdown_formatted' => $task->getCountdownFormatted(),
+                'start_time' => $task->start_time,
+                'estimated_completion_time' => $task->getEstimatedCompletionTime(),
+            ]
+        ];
+    }
+
+  private function processDeliverySubmission($task, $record, $driver, $actionTime)
+    {
+        // Check if task can be completed (status should be 1 - Delivering)
+        if ($task->getStatusValue() !== Task::STATUS_DELIVERING) {
+            return [
+                'success' => false,
+                'message' => 'Task cannot be completed. Current status: ' . $task->status
+            ];
+        }
+
+        // Validate lorry_id exists
+        $lorryId = $record['lorry_id'] ?? null;
+        if (!$lorryId) {
+            return [
+                'success' => false,
+                'message' => 'Lorry ID is required'
+            ];
+        }
+
+        $lorry = Lorry::find($lorryId);
+        if (!$lorry) {
+            return [
+                'success' => false,
+                'message' => 'Invalid lorry ID'
+            ];
+        }
+
+        // Upload images only if provided and task is not already completed
+        $deliveryOrderImagePath = null;
+        $proofOfDeliveryImagePath = null;
+
+        if (isset($record['delivery_order_image']) && $record['delivery_order_image'] instanceof \Illuminate\Http\UploadedFile) {
+            $deliveryOrderImagePath = $record['delivery_order_image']->store('delivery-images', 'public');
+        } else {
+            // If no image provided, check if images already exist in database
+            $existingImages = DeliveryImage::where('task_id', $task->id)->first();
+            if ($existingImages) {
+                $deliveryOrderImagePath = $existingImages->delivery_order_image_path;
+                $proofOfDeliveryImagePath = $existingImages->proof_of_delivery_image_path;
+            }
+        }
+
+        if (isset($record['proof_of_delivery_image']) && $record['proof_of_delivery_image'] instanceof \Illuminate\Http\UploadedFile) {
+            $proofOfDeliveryImagePath = $record['proof_of_delivery_image']->store('proof-of-delivery', 'public');
+        }
+
+        // End the trip with the provided timestamp
+        // This will NOT update progress (already done when task was created)
+        $ended = $task->endTrip($actionTime);
+
+        if (!$ended) {
+            return [
+                'success' => false,
+                'message' => 'Failed to complete delivery'
+            ];
+        }
+
+        // Create trip record with lorry_id and action time
+        Trip::create([
+            'date' => $actionTime,
+            'driver_id' => $driver->id,
+            'lorry_id' => $lorryId,
+            'task_id' => $task->id,
+            'type' => 0, 
+        ]);
+
+        // Save delivery images only if we have new paths
+        if ($deliveryOrderImagePath || $proofOfDeliveryImagePath) {
+            $deliveryImage = DeliveryImage::updateOrCreate(
+                ['task_id' => $task->id],
+                [
+                    'delivery_order_image_path' => $deliveryOrderImagePath,
+                    'proof_of_delivery_image_path' => $proofOfDeliveryImagePath,
+                ]
+            );
+        }
+
+        return [
+            'success' => true,
+            'message' => 'Delivery submitted successfully',
+            'data' => [
+                'task' => $task,
+                'completion_details' => [
+                    'end_time' => $task->end_time,
+                    'time_taken' => $task->time_taken,
+                    'time_taken_formatted' => $task->getTimeTakenFormatted(),
+                    'is_late' => $task->is_late,
+                    'completion_time' => $actionTime->toDateTimeString(),
+                ],
+                'progress_note' => 'No progress change - already added when task was created'
+            ]
+        ];
+    }
+
+    private function processDeliveryReturn($task, $record, $driver, $actionTime) 
+    {
+        // Check if task can be returned
+        if (!$task->canReturn()) {
+            return [
+                'success' => false,
+                'message' => 'Task cannot be returned. Current status: ' . $task->status
+            ];
+        }
+        $lorryId = $record['lorry_id'] ?? null;
+
+        // Update task as returned with the provided timestamp
+        // This will trigger handleReturn() which calls deductProgress()
+        $returned = $task->markAsReturned(
+            $record['return_reason'],
+            $record['return_remarks'] ?? null,
+            $actionTime
+        );
+
+        Trip::create([
+            'date' => $actionTime,
+            'driver_id' => $driver->id,
+            'lorry_id' => $lorryId,
+            'task_id' => $task->id,
+            'type' => 0, 
+        ]);
+
+        if (!$returned) {
+            return [
+                'success' => false,
+                'message' => 'Failed to mark delivery as returned'
+            ];
+        }
+
+        // Refresh to get updated delivery order data
+        $task->refresh();
+        $deliveryOrder = $task->deliveryOrder;
+
+        return [
+            'success' => true,
+            'message' => 'Delivery marked as returned successfully',
+            'data' => [
+                'task' => $task,
+                'return_details' => [
+                    'return_reason' => $task->return_reason,
+                    'return_remarks' => $task->return_remarks,
+                    'effective_delivered_quantity' => $task->getEffectiveDeliveredQuantity(),
+                    'return_time' => $actionTime->toDateTimeString(),
+                ],
+                'progress_update' => [
+                    'deducted_amount' => $task->this_load,
+                    'delivery_order_progress' => $deliveryOrder->progress_total ?? 0,
+                    'delivery_order_status' => $deliveryOrder->status ?? 'N/A'
+                ]
+            ]
+        ];
+    }
+
+
+}   

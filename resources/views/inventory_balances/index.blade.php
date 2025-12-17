@@ -19,7 +19,6 @@
                         <div class="card-body">
                             @include('inventory_balances.table')
                             <div class="pull-right mr-3">
-
                             </div>
                         </div>
                     </div>
@@ -28,6 +27,7 @@
         </div>
     </div>
 
+    <!-- Stock In Modal -->
     <div id="stockin" class="modal fade">
         <div class="modal-dialog modal-lg modal-dialog-centered">
             <div class="modal-content">
@@ -37,7 +37,8 @@
                 </div>
                 <div class="modal-body text-center">
                     {!! Form::open(['route' => 'inventoryBalances.stockin', 'enctype' => 'multipart/form-data']) !!}
-                    <!-- Custom Dropdown with Checkboxes for Lorries -->
+                    
+                    <!-- Lorry Multi-Select Dropdown -->
                     <div class="form-group">
                         <label for="lorry_id" class="col-form-label">{{ __('inventory_balances.lorry') }}:</label>
                         <div class="dropdown">
@@ -45,13 +46,11 @@
                                 {{ __('inventory_balances.select_lorry') }}
                             </button>
                             <div class="dropdown-menu p-3" aria-labelledby="dropdownLorryStockIn" style="width: 100%; max-height: 300px; overflow-y: auto;">
-                                <!-- Live search input -->
                                 <input type="text" class="form-control mb-3" id="lorrySearchStockIn" placeholder="Search Lorries...">
-                                <!-- Lorries checkboxes -->
                                 <div id="lorryListStockIn">
                                     @foreach($lorryItems as $lorryId => $lorryName)
                                         <div class="form-check ml-3">
-                                            <input class="form-check-input lorry-checkbox-stockin" type="checkbox" name="lorry_id[]" value="{{ $lorryId }}" id="lorry_stockin_{{ $lorryId }}">
+                                            <input class="form-check-input lorry-checkbox" type="checkbox" name="lorry_id[]" value="{{ $lorryId }}" id="lorry_stockin_{{ $lorryId }}">
                                             <label class="form-check-label" for="lorry_stockin_{{ $lorryId }}">
                                                 {{ $lorryName }}
                                             </label>
@@ -62,10 +61,27 @@
                         </div>
                     </div>
 
+                    <!-- Product Single-Select Dropdown -->
                     <div class="form-group">
                         <label for="product_id" class="col-form-label">{{ __('inventory_balances.product') }}:</label>
-                        {{ Form::select('product_id', $productItems, null, ['class' => 'form-control', 'placeholder' => 'Pick a Product...']) }}
+                        <div class="dropdown">
+                            <button class="btn btn-outline-primary btn-block dropdown-toggle" type="button" id="dropdownProductStockIn" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                {{ __('Select Product') }}
+                            </button>
+                            <div class="dropdown-menu p-3" aria-labelledby="dropdownProductStockIn" style="width: 100%; max-height: 300px; overflow-y: auto;">
+                                <input type="text" class="form-control mb-3" id="productSearchStockIn" placeholder="Search Products...">
+                                <div id="productListStockIn" class="list-group">
+                                    @foreach($productItems as $productId => $productName)
+                                        <a href="#" class="list-group-item list-group-item-action product-item" data-value="{{ $productId }}">
+                                            {{ $productName }}
+                                        </a>
+                                    @endforeach
+                                </div>
+                            </div>
+                        </div>
+                        <input type="hidden" name="product_id" id="selectedProductStockIn">
                     </div>
+
                     <div class="form-group">
                         <label for="quantity" class="col-form-label">{{ __('inventory_balances.transfer_quantity') }}:</label>
                         <div class="input-group mb-3">
@@ -83,6 +99,7 @@
         </div>
     </div>
 
+    <!-- Stock Out Modal -->
     <div id="stockout" class="modal fade">
         <div class="modal-dialog modal-lg modal-dialog-centered">
             <div class="modal-content">
@@ -92,14 +109,51 @@
                 </div>
                 <div class="modal-body text-center">
                     {!! Form::open(['route' => 'inventoryBalances.stockout', 'enctype' => 'multipart/form-data']) !!}
+                    
+                    <!-- Lorry Multi-Select Dropdown -->
                     <div class="form-group">
                         <label for="lorry_id" class="col-form-label">{{ __('inventory_balances.lorry') }}:</label>
-                        {{ Form::select('lorry_id', $lorryItems, null, ['class' => 'form-control', 'placeholder' => 'Pick a Lorry...']) }}
+                        <div class="dropdown">
+                            <button class="btn btn-outline-primary btn-block dropdown-toggle" type="button" id="dropdownLorryStockOut" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                {{ __('inventory_balances.select_lorry') }}
+                            </button>
+                            <div class="dropdown-menu p-3" aria-labelledby="dropdownLorryStockOut" style="width: 100%; max-height: 300px; overflow-y: auto;">
+                                <input type="text" class="form-control mb-3" id="lorrySearchStockOut" placeholder="Search Lorries...">
+                                <div id="lorryListStockOut">
+                                    @foreach($lorryItems as $lorryId => $lorryName)
+                                        <div class="form-check ml-3">
+                                            <input class="form-check-input lorry-checkbox" type="checkbox" name="lorry_id[]" value="{{ $lorryId }}" id="lorry_stockout_{{ $lorryId }}">
+                                            <label class="form-check-label" for="lorry_stockout_{{ $lorryId }}">
+                                                {{ $lorryName }}
+                                            </label>
+                                        </div>
+                                    @endforeach
+                                </div>
+                            </div>
+                        </div>
                     </div>
+
+                    <!-- Product Single-Select Dropdown -->
                     <div class="form-group">
                         <label for="product_id" class="col-form-label">{{ __('inventory_balances.product') }}:</label>
-                        {{ Form::select('product_id', $productItems, null, ['class' => 'form-control', 'placeholder' => 'Pick a Product...', 'id' => 'product_id']) }}
+                        <div class="dropdown">
+                            <button class="btn btn-outline-primary btn-block dropdown-toggle" type="button" id="dropdownProductStockOut" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                {{ __('Select Product') }}
+                            </button>
+                            <div class="dropdown-menu p-3" aria-labelledby="dropdownProductStockOut" style="width: 100%; max-height: 300px; overflow-y: auto;">
+                                <input type="text" class="form-control mb-3" id="productSearchStockOut" placeholder="Search Products...">
+                                <div id="productListStockOut" class="list-group">
+                                    @foreach($productItems as $productId => $productName)
+                                        <a href="#" class="list-group-item list-group-item-action product-item" data-value="{{ $productId }}">
+                                            {{ $productName }}
+                                        </a>
+                                    @endforeach
+                                </div>
+                            </div>
+                        </div>
+                        <input type="hidden" name="product_id" id="selectedProductStockOut">
                     </div>
+
                     <div class="form-group">
                         <label for="quantity" class="col-form-label">{{ __('inventory_balances.transfer_quantity') }}:</label>
                         <div class="input-group mb-3">
@@ -124,105 +178,154 @@
             border-radius: 0.25rem;
             box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
         }
-
         .dropdown-menu .form-check {
             padding: 0.25rem 0;
         }
-
         .dropdown-toggle::after {
             margin-left: 10px;
         }
-
         .dropdown-menu::-webkit-scrollbar {
             width: 8px;
         }
-
         .dropdown-menu::-webkit-scrollbar-track {
             background: #f1f1f1;
         }
-
         .dropdown-menu::-webkit-scrollbar-thumb {
             background: #888;
             border-radius: 4px;
         }
-
         .dropdown-menu::-webkit-scrollbar-thumb:hover {
             background: #555;
         }
-
         .btn-outline-primary {
             border-color: #007bff;
             color: #007bff;
         }
-
         .btn-outline-primary:hover {
             background-color: #007bff;
             color: #fff;
+        }
+        .product-item:hover, 
+        .product-item.active {
+            background-color: #007bff;
+            color: white;
+            cursor: pointer;
+        }
+        .list-group-item {
+            border: 1px solid rgba(0,0,0,.125);
+            margin-bottom: -1px;
         }
     </style>
 
     <script>
         $(document).ready(function () {
-            // Implement live search functionality
-            $('#lorrySearchStockIn').on('keyup', function () {
-                var searchTerm = $(this).val().toLowerCase();
-                $('#lorryListStockIn .form-check').each(function () {
-                    var lorryName = $(this).find('label').text().toLowerCase();
-                    if (lorryName.includes(searchTerm)) {
-                        $(this).show(); // Show matching items
-                    } else {
-                        $(this).hide(); // Hide non-matching items
-                    }
-                });
-            });
-        });
-
-        $(document).ready(function () {
-            // When a checkbox is selected or deselected in the Stock In modal
-            $('.lorry-checkbox-stockin').change(function () {
+            // Lorry checkbox functionality for both modals
+            $('.lorry-checkbox').change(function () {
+                var dropdownButton = $(this).closest('.dropdown-menu').prev('.dropdown-toggle');
                 var selected = [];
-                // Collect all selected lorries
-                $('.lorry-checkbox-stockin:checked').each(function () {
+                
+                $(this).closest('.dropdown-menu').find('.lorry-checkbox:checked').each(function () {
                     selected.push($(this).next('label').text());
                 });
 
-                // Update the dropdown button text with the selected lorries or default text
-                var button = $('#dropdownLorryStockIn');
                 if (selected.length > 0) {
-                    button.text(selected.join(', '));
+                    dropdownButton.text(selected.join(', '));
                 } else {
-                    button.text('Select Lorries');
+                    dropdownButton.text('Select Lorries');
+                }
+            });
+
+            // Lorry search functionality for both modals
+            $('#lorrySearchStockIn, #lorrySearchStockOut').on('keyup', function () {
+                var searchTerm = $(this).val().toLowerCase();
+                var targetList = $(this).closest('.dropdown-menu').find('.form-check');
+                
+                targetList.each(function () {
+                    var lorryName = $(this).find('label').text().toLowerCase();
+                    if (lorryName.includes(searchTerm)) {
+                        $(this).show();
+                    } else {
+                        $(this).hide();
+                    }
+                });
+            });
+
+            // Product selection for both modals
+            $('.product-item').on('click', function(e) {
+                e.preventDefault();
+                var productName = $(this).text();
+                var productId = $(this).data('value');
+                var dropdown = $(this).closest('.dropdown-menu');
+                
+                // Update UI
+                $(this).siblings().removeClass('active');
+                $(this).addClass('active');
+                dropdown.prev('.dropdown-toggle').text(productName);
+                
+                // Set hidden input value
+                var modalId = $(this).closest('.modal').attr('id');
+                if (modalId === 'stockin') {
+                    $('#selectedProductStockIn').val(productId);
+                } else {
+                    $('#selectedProductStockOut').val(productId);
+                    getstock(); // Trigger stock calculation for stockout
+                }
+            });
+
+            // Product search functionality for both modals
+            $('#productSearchStockIn, #productSearchStockOut').on('keyup', function() {
+                var searchTerm = $(this).val().toLowerCase();
+                var productList = $(this).siblings('.list-group');
+                
+                productList.find('.product-item').each(function() {
+                    var productText = $(this).text().toLowerCase();
+                    if (productText.includes(searchTerm)) {
+                        $(this).show();
+                    } else {
+                        $(this).hide();
+                    }
+                });
+            });
+
+            // Initialize dropdown buttons with default text
+            $('.dropdown-toggle').each(function() {
+                if (!$(this).text().trim()) {
+                    if ($(this).closest('.dropdown-menu').find('.form-check').length) {
+                        $(this).text('Select Lorries');
+                    } else {
+                        $(this).text('Select Product');
+                    }
                 }
             });
         });
-    </script>
 
-    <script>
         $(document).keyup(function(e) {
             if(e.altKey && e.keyCode == 78){
                 $('.card .card-header a')[0].click();
             }
         });
 
-        $('#stockout').find('#lorry_id').change(function(){
-            getstock();
-        });
-
-        $('#stockout').find('#product_id').change(function(){
-            getstock();
+        // Stock out specific functionality
+        $('#stockout').on('change', '.lorry-checkbox', function(){
+            if ($('#selectedProductStockOut').val()) {
+                getstock();
+            }
         });
 
         function getstock() {
-            var lorry_id = $('#stockout').find('select[name="lorry_id"]').val();
-            var product_id = $('#stockout').find('select[name="product_id"]').val();
+            // Get selected lorry IDs from checkboxes
+            var lorryIds = [];
+            $('#stockout').find('.lorry-checkbox:checked').each(function() {
+                lorryIds.push($(this).val());
+            });
+            
+            // Get selected product ID
+            var productId = $('#selectedProductStockOut').val();
 
-            console.log('Lorry ID: ', lorry_id); // Debugging
-            console.log('Product ID: ', product_id); // Debugging
-
-            if (lorry_id != '' && product_id != '') {
+            if (lorryIds.length > 0 && productId) {
                 ShowLoad();
                 $.ajax({
-                    url: '{{ ENV("APP_URL") }}' + '/inventoryBalances/getstock/' + lorry_id + '/' + product_id,
+                    url: '{{ ENV("APP_URL") }}' + '/inventoryBalances/getstock/' + lorryIds.join(',') + '/' + productId,
                     type: 'GET',
                     success: function(data) {
                         if (data.status) {
@@ -242,6 +345,5 @@
                 });
             }
         }
-
     </script>
 @endpush

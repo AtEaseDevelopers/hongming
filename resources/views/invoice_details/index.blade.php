@@ -13,13 +13,13 @@
                          <div class="card-header">
                              <i class="fa fa-align-justify"></i>
                              {{ __('invoice_details.invoice_details') }}
-                             <a class="pull-right" href="{{ route('invoiceDetails.create') }}"><i class="fa fa-plus-square fa-lg"></i></a>
+                             <!-- <a class="pull-right" href="{{ route('invoiceDetails.create') }}"><i class="fa fa-plus-square fa-lg"></i></a> -->
                              <a class="pull-right text-danger pr-2" id="massdelete" href="#" alt="Mass delete"><i class="fa fa-trash fa-lg"></i></a>
                          </div>
                          <div class="card-body">
                              @include('invoice_details.table')
                               <div class="pull-right mr-3">
-                                     
+
                               </div>
                          </div>
                      </div>

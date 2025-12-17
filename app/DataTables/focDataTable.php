@@ -116,7 +116,7 @@ class focDataTable extends DataTable
                     ],
                     [
                     'targets' => 9,
-                    'render' => 'function(data, type){return data == 1 ? "Active" : "Unactive";}'],
+                    'render' => 'function(data, type){return data == 1 ? "Active" : "Inactive";}'],
                 ],
                 'initComplete' => 'function(){
                     var columns = this.api().init().columns;
@@ -126,7 +126,7 @@ class focDataTable extends DataTable
                         var column = this;
                         if(columns[index].searchable){
                             if(columns[index].title == \'Status\'){
-                                var input = \'<select class="border-0" style="width: 100%;"><option value="1">Active</option><option value="0">Unactive</option></select>\';
+                                var input = \'<select class="border-0" style="width: 100%;"><option value="1">Active</option><option value="0">Inactive</option></select>\';
                             }else if(columns[index].title == \'Payment Term\'){
                                 var input = \'<select class="border-0" style="width: 100%;"><option value="1">Cash</option><option value="2">Bankin</option><option value="3">Credit Note</option></select>\';
                             }else{

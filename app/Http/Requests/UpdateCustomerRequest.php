@@ -4,9 +4,8 @@ namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
 use App\Models\Customer;
-use Illuminate\Support\Facades\Crypt;
 
-class UpdateCustomerRequest extends FormRequest
+class CreateCustomerRequest extends FormRequest
 {
     /**
      * Determine if the user is authorized to make this request.
@@ -25,18 +24,23 @@ class UpdateCustomerRequest extends FormRequest
      */
     public function rules()
     {
-        $id = $this->route('customer');
-        $rules = [
-            'code' => 'required|string|max:255|unique:customers,code,'.Crypt::decrypt($id),
-            'company' => 'required|string|max:255|string|max:255',
-            'paymentterm' => 'required',
-            'phone' => 'nullable|string|max:20|nullable|string|max:20',
-            'address' => 'nullable|string|max:65535|nullable|string|max:65535',
+        return [
+            'code' => 'required|string|max:255|unique:customers,code',
+            'company' => 'required|string|max:255',
+            'paymentterm' => 'nullable',
+            'phone' => 'nullable|string|max:20',
+            'address' => 'nullable|string|max:65535',
             'status' => 'required',
-            'created_at' => 'nullable|nullable',
-            'updated_at' => 'nullable|nullable'
+            'sst' => 'nullable|string|max:255',
+            'tin' => 'nullable|string|max:255',
+            'place_name' => 'nullable|string|max:255',
+            'place_address' => 'nullable|string',
+            'place_latitude' => 'nullable|numeric',
+            'place_longitude' => 'nullable|numeric',
+            'google_place_id' => 'nullable|string|max:255',
+            'destinate_id' => 'nullable|string|max:255',
+            'created_at' => 'nullable',
+            'updated_at' => 'nullable'
         ];
-        
-        return $rules;
     }
 }

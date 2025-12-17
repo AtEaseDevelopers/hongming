@@ -39,6 +39,7 @@ Route::group(['prefix' => 'v1'], function () {
     //Task
     Route::get('/driver/task', [App\Http\Controllers\Api\V1\DriverController::class, 'gettask']);
     Route::get('/driver/taskpage', [App\Http\Controllers\Api\V1\DriverController::class, 'gettaskpage']);
+    Route::post('/driver/taskdetails', [App\Http\Controllers\Api\V1\DriverController::class, 'gettaskDetails']);
     Route::post('/driver/task/start', [App\Http\Controllers\Api\V1\DriverController::class, 'starttask']);
     Route::post('/driver/task/cancel', [App\Http\Controllers\Api\V1\DriverController::class, 'canceltask']);
     //Product
@@ -53,7 +54,7 @@ Route::group(['prefix' => 'v1'], function () {
     Route::post('/driver/invoice', [App\Http\Controllers\Api\V1\DriverController::class, 'addinvoice']);
     Route::post('/driver/invoice/pdf', [App\Http\Controllers\Api\V1\DriverController::class, 'invoicepdf']);
 
-     //Invoice Payment
+    //Invoice Payment
     Route::post('/driver/invoicepayment', [App\Http\Controllers\Api\V1\DriverController::class, 'addpayment']);
     Route::post('/driver/invoicepayment/pdf', [App\Http\Controllers\Api\V1\DriverController::class, 'paymentpdf']);
 
@@ -73,6 +74,26 @@ Route::group(['prefix' => 'v1'], function () {
     //dashboard
     Route::post('/driver/dashboard', [App\Http\Controllers\Api\V1\DriverController::class, 'dashboard']);
 
+    //notification
+    Route::get('/driver/notifications', [App\Http\Controllers\Api\V1\DriverController::class, 'getNotifications']);
+    Route::post('/driver/notifications/read', [App\Http\Controllers\Api\V1\DriverController::class, 'markAsRead']);
+
+    Route::post('/driver/register-fcm-token', [App\Http\Controllers\Api\V1\DriverController::class, 'registerFCMToken']);
+    Route::post('/driver/remove-fcm-token', [App\Http\Controllers\Api\V1\DriverController::class, 'removeFCMToken']);
+
+    //checkin /chekout
+    Route::get('/driver/tasks/status', [App\Http\Controllers\Api\V1\DriverController::class, 'getDriverStatus']);
+
+    Route::post('/driver/tasks/bulk-checkinout', [App\Http\Controllers\Api\V1\DriverController::class, 'bulkCheckInOut']);
+
+    //start delivery
+    Route::post('/driver/tasks/start-delivery', [App\Http\Controllers\Api\V1\DriverController::class, 'startDelivery']);
+    //submit delivery
+    Route::post('/driver/tasks/complete-delivery', [App\Http\Controllers\Api\V1\DriverController::class, 'completeDelivery']);
+    //return delivery
+    Route::post('/driver/tasks/return-delivery', [App\Http\Controllers\Api\V1\DriverController::class, 'returnDelivery']);
+    //bulk submit delivery
+    Route::post('/driver/tasks/bulk-delivery', [App\Http\Controllers\Api\V1\DriverController::class, 'bulkDelivery']);
 
 });
 

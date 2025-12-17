@@ -31,7 +31,7 @@ class AssignDataTable extends DataTable
     {
         return $model->newQuery()
         ->with('driver:id,name')
-        ->with('customer:id,company')
+        ->with('deliveryOrder:id,dono')
         ->select('assigns.*');
     }
 
@@ -156,9 +156,9 @@ class AssignDataTable extends DataTable
             'data' => 'driver.name',
             'name' => 'driver.name']),
 
-            'customer_id'=> new \Yajra\DataTables\Html\Column(['title' => trans('assign.customer'),
-            'data' => 'customer.company',
-            'name' => 'customer.company']),
+            'delivery_order_id'=> new \Yajra\DataTables\Html\Column(['title' => trans('Delivery Order'),
+            'data' => 'delivery_order.dono',
+            'name' => 'delivery_order.dono']),
 
             'sequence'
 

@@ -31,7 +31,6 @@ class CompanyDataTable extends DataTable
     public function query(Company $model)
     {
         return $model->newQuery()
-        ->with('group')
         ->select('companies.*');
     }
 
@@ -151,15 +150,23 @@ class CompanyDataTable extends DataTable
             'searchable' => false]),
             'code',
             'name',
-            'ssm',
-            'address1',
-            'address2',
-            'address3',
-            'address4',
-
-            'group_id'=> new \Yajra\DataTables\Html\Column(['title' => 'Group',
-            'data' => 'group.description',
-            'name' => 'group.description'])
+             'ssm' => new \Yajra\DataTables\Html\Column([
+                'title' => 'SSM Number',
+                'data' => 'ssm', 
+                'name' => 'ssm'
+            ]), 'do_prefix' => new \Yajra\DataTables\Html\Column([
+                'title' =>'Project Number Prefix',
+                'data' => 'do_prefix', 
+                'name' => 'do_prefix'
+            ]), 'machine_prefix' => new \Yajra\DataTables\Html\Column([
+                'title' => 'Machine Number Prefix',
+                'data' => 'machine_prefix', 
+                'name' => 'machine_prefix'
+            ]), 'task_prefix' => new \Yajra\DataTables\Html\Column([
+                'title' => 'Delivery Order Prefix',
+                'data' => 'task_prefix', 
+                'name' => 'task_prefix'
+            ]),
         ];
     }
 

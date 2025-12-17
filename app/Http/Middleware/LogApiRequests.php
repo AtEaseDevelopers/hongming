@@ -7,7 +7,6 @@ use Illuminate\Http\Request;
 use App\Models\ApiLog;
 use Symfony\Component\HttpFoundation\Response;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Auth;
 use App\Models\Driver;
 
 class LogApiRequests
@@ -24,25 +23,28 @@ class LogApiRequests
         try {
             $driver = Driver::where('session', $request->header('session'))->first();
 
-            Log::debug('Attempting to log API request', [
-                'method' => $request->method(),
-                'url' => $request->fullUrl(),
-                'headers' => $request->headers->all(),
-                'request_body' => $request->all(),
-                'status_code' => $response->getStatusCode(),
-                'ip_address' => $request->ip(),
-                'driver_id' => $driver ? $driver->id : null,
-                'timestamp' => now()->toDateTimeString()
-            ]);
-
             $headers = $request->headers->all();
             $requestBody = $request->all();
-            $responseBody = $this->getResponseContent($response);
-            $encodedResponseBody = json_encode($responseBody, JSON_INVALID_UTF8_IGNORE);
+            
+            // Get response content
+            $responseContent = $response->getContent();
+            
+            // Handle request body - encode to JSON if it's an array
+            $encodedRequestBody = is_array($requestBody) ? json_encode($requestBody, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) : $requestBody;
+            
+            // Handle response body - check if it's already JSON
+            if ($this->isJson($responseContent)) {
+                // If it's already valid JSON, use it as-is without re-encoding
+                $encodedResponseBody = $responseContent;
+            } else {
+                // If it's not JSON, try to encode it
+                $encodedResponseBody = json_encode($responseContent, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+            }
+            
             $responseLength = strlen($encodedResponseBody);
 
             // Skip response_body if it exceeds the safe length (e.g., 65535 for TEXT)
-            $maxLength = 65535; // Adjust based on your column type
+            $maxLength = 65535;
             $storeResponseBody = $responseLength <= $maxLength ? $encodedResponseBody : null;
 
             if ($responseLength > $maxLength) {
@@ -57,13 +59,21 @@ class LogApiRequests
             $log = ApiLog::create([
                 'method' => $request->method(),
                 'url' => $request->fullUrl(),
-                'headers' => json_encode($headers),
-                'request_body' => json_encode($requestBody),
+                'headers' => json_encode($headers, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
+                'request_body' => $encodedRequestBody,
                 'response_body' => $storeResponseBody,
                 'status_code' => $response->getStatusCode(),
                 'ip_address' => $request->ip(),
                 'driver_id' => $driver ? $driver->id : null,
                 'created_at' => now(),
+            ]);
+
+            Log::debug('API request logged successfully', [
+                'log_id' => $log->id,
+                'url' => $request->fullUrl(),
+                'request_body_length' => strlen($encodedRequestBody),
+                'response_body_length' => $responseLength,
+                'stored_response' => $storeResponseBody !== null
             ]);
 
         } catch (\Exception $e) {
@@ -76,8 +86,16 @@ class LogApiRequests
         }
     }
 
-    protected function getResponseContent(Response $response)
+    /**
+     * Check if string is valid JSON
+     */
+    protected function isJson($string)
     {
-        return json_decode($response->getContent(), true) ?? $response->getContent();
+        if (!is_string($string) || trim($string) === '') {
+            return false;
+        }
+        
+        json_decode($string);
+        return json_last_error() === JSON_ERROR_NONE;
     }
 }

@@ -26,6 +26,7 @@ use App\Models\Driver;
 use App\Models\Loan;
 use App\Models\Price;
 use App\Models\Report;
+use App\Models\Company;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\ServiceProvider;
 use View;
@@ -123,8 +124,23 @@ class ViewServiceProvider extends ServiceProvider
             $view->with('customerItems', $customerItems);
         });
         View::composer(['tasks.fields'], function ($view) {
+            $companies = Company::all();    
+            // Create the regular company array for the dropdown
+            $company = $companies->pluck('name', 'id')->toArray();
+            
+            // Pass the full companies collection for JavaScript
+            $view->with([
+                'company' => $company,
+                'companies' => $companies
+            ]);       
+        });
+        View::composer(['tasks.fields'], function ($view) {
             $driverItems = Driver::orderBy("name")->pluck('name','id')->toArray();
             $view->with('driverItems', $driverItems);
+        });
+        View::composer(['tasks.fields'], function ($view) {
+            $lorryItems = Lorry::where('status',1)->orderBy("lorryno")->pluck('lorryno','id')->toArray();
+            $view->with('lorryItems', $lorryItems);
         });
         View::composer(['invoice_payments.fields'], function ($view) {
             $customerItems = Customer::orderBy("company")->pluck('company','id')->toArray();
@@ -162,9 +178,10 @@ class ViewServiceProvider extends ServiceProvider
             $customerItems = Customer::orderBy("company")->pluck('company','id')->toArray();
             $view->with('customerItems', $customerItems);
         });
-        View::composer(['assigns.fields','drivers.assign'], function ($view) {
-            $customerItems = Customer::where('status',1)->orderBy("company")->pluck('company','id')->toArray();
-            $view->with('customerItems', $customerItems);
+        View::composer(['tasks.fields'], function ($view) {
+            $forEditing = isset($view->getData()['task']);
+            $delivery_order = DeliveryOrder::getAvailableForTaskOptions($forEditing);
+            $view->with('delivery_order', $delivery_order);
         });
         View::composer(['assigns.fields','drivers.assign','assigns.massfields'], function ($view) {
             $driverItems = Driver::orderBy("name")->pluck('name','id')->toArray();
@@ -288,33 +305,73 @@ class ViewServiceProvider extends ServiceProvider
             $view->with('reportItems', $reportItems);
         });
 
+        // View::composer(['delivery_orders.fields'], function ($view) {
+        //     $priceItems = Price::where('status',1)->select('vendor_id','item_id','source_id','destinate_id','minrange','maxrange','billingrate')->get();
+        //     $view->with('priceItems', $priceItems);
+        // });
         View::composer(['delivery_orders.fields'], function ($view) {
-            $priceItems = Price::where('status',1)->select('vendor_id','item_id','source_id','destinate_id','minrange','maxrange','billingrate')->get();
-            $view->with('priceItems', $priceItems);
+           $productItems = Product::where('type',0)->pluck('name','id')->toArray();
+            $view->with('productItems', $productItems);
         });
+     
+        // View::composer(['delivery_orders.fields'], function ($view) {
+        //     $sourceItems = Location::where('source',1)->where('status',1)->pluck('code','id')->toArray();
+        //     $view->with('sourceItems', $sourceItems);
+        // });
+        // View::composer(['delivery_orders.fields'], function ($view) {
+        //     $destinateItems = Location::where('destination',1)->where('status',1)->pluck('code','id')->toArray();
+        //     $view->with('destinateItems', $destinateItems);
+        // });
+        // View::composer(['delivery_orders.fields'], function ($view) {
+        //     $vendorItems = Vendor::where('status',1)->pluck('code','id')->toArray();
+        //     $view->with('vendorItems', $vendorItems);
+        // });
         View::composer(['delivery_orders.fields'], function ($view) {
-            $itemItems = Item::where('status',1)->pluck('code','id')->toArray();
-            $view->with('itemItems', $itemItems);
+            $customers = Customer::where('status',1)->pluck('company','id')->toArray();
+            $view->with('customers', $customers);
         });
+          View::composer(['delivery_orders.fields'], function ($view) {
+            $status = DeliveryOrder::getStatusOptions();
+            $view->with('status', $status);
+        });
+
         View::composer(['delivery_orders.fields'], function ($view) {
-            $sourceItems = Location::where('source',1)->where('status',1)->pluck('code','id')->toArray();
-            $view->with('sourceItems', $sourceItems);
+            $companies = Company::all();    
+            // Create the regular company array for the dropdown
+            $company = $companies->pluck('name', 'id')->toArray();
+            
+            // Pass the full companies collection for JavaScript
+            $view->with([
+                'company' => $company,
+                'companies' => $companies
+            ]);       
         });
-        View::composer(['delivery_orders.fields'], function ($view) {
-            $destinateItems = Location::where('destination',1)->where('status',1)->pluck('code','id')->toArray();
-            $view->with('destinateItems', $destinateItems);
-        });
-        View::composer(['delivery_orders.fields'], function ($view) {
-            $vendorItems = Vendor::where('status',1)->pluck('code','id')->toArray();
-            $view->with('vendorItems', $vendorItems);
-        });
-        View::composer(['delivery_orders.fields'], function ($view) {
-            $driverItems = Driver::where('status',1)->pluck('name','id')->toArray();
-            $view->with('driverItems', $driverItems);
-        });
+        
         View::composer(['delivery_orders.fields'], function ($view) {
             $lorryItems = Lorry::pluck('lorryno','id')->toArray();
             $view->with('lorryItems', $lorryItems);
+        });
+
+        View::composer(['machine_rental.fields'], function ($view) {
+            $customers = Customer::where('status',1)->pluck('company','id')->toArray();
+            $view->with('customers', $customers);
+        });
+        
+        View::composer(['machine_rental.fields'], function ($view) {
+            $companies = Company::all();    
+            // Create the regular company array for the dropdown
+            $company = $companies->pluck('name', 'id')->toArray();
+            
+            // Pass the full companies collection for JavaScript
+            $view->with([
+                'company' => $company,
+                'companies' => $companies
+            ]);       
+        });
+        
+         View::composer(['machine_rental.fields'], function ($view) {
+           $productItems = Product::where('type',1)->pluck('name','id')->toArray();
+            $view->with('productItems', $productItems);
         });
 
         View::composer(['loanpayments.fields'], function ($view) {
@@ -408,9 +465,30 @@ class ViewServiceProvider extends ServiceProvider
             $view->with('roleItems', $roleItems);
         });
         View::composer(['roles.fields'], function ($view) {
-            $permissionItems = Permission::pluck('name','id')->toArray();
+            $permissionItems = $this->getFilteredPermissions();
             $view->with('permissionItems', $permissionItems);
         });
-        //
     }
+    private function getFilteredPermissions()
+        {
+            $excludedPermissions = [
+                'code',
+                'userrole',
+                'rolepermission',
+                'kelindan',
+                'agent',
+                'supervisor',
+                'specialprice',
+                'foc',
+                'assign',
+                'invoice',
+                'paymentapprove',
+                'inventorytransaction',
+                'inventorytransfer'
+            ];
+            
+            return Permission::whereNotIn('name', $excludedPermissions)
+                            ->pluck('name', 'id')
+                            ->toArray();
+        }
 }

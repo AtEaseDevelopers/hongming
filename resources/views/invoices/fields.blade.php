@@ -35,28 +35,28 @@
 <!-- Driver Id Field -->
 <div class="form-group col-sm-6">
     {!! Form::label('driver_id', __('invoices.driver')) !!}
-    {!! Form::select('driver_id', $driverItems, null, ['class' => 'form-control', 'placeholder' => 'Pick a Driver...']) !!}
+    {!! Form::select('driver_id', $driverItems, null, ['class' => 'form-control select2-driver', 'placeholder' => 'Pick a Driver...']) !!}
 </div>
 
 
 <!-- Kelindan Id Field -->
 <div class="form-group col-sm-6">
     {!! Form::label('kelindan_id', __('invoices.kelindan')) !!}
-    {!! Form::select('kelindan_id', $kelindanItems, null, ['class' => 'form-control', 'placeholder' => 'Pick a Kelindan...']) !!}
+    {!! Form::select('kelindan_id', $kelindanItems, null, ['class' => 'form-control select2-kelindan', 'placeholder' => 'Pick a Kelindan...']) !!}
 </div>
 
 
 <!-- Agent Id Field -->
 <div class="form-group col-sm-6">
     {!! Form::label('agent_id',  __('invoices.agent'))  !!}
-    {!! Form::select('agent_id', $agentItems, null, ['class' => 'form-control', 'placeholder' => 'Pick a Agent...']) !!}
+    {!! Form::select('agent_id', $agentItems, null, ['class' => 'form-control select2-agent', 'placeholder' => 'Pick a Agent...']) !!}
 </div>
 
 
 <!-- Supervisor Id Field -->
 <div class="form-group col-sm-6">
     {!! Form::label('supervisor_id',  __('invoices.supervisor'))  !!}
-    {!! Form::select('supervisor_id', $supervisorItems, null, ['class' => 'form-control', 'placeholder' => 'Pick a Supervisor...']) !!}
+    {!! Form::select('supervisor_id', $supervisorItems, null, ['class' => 'form-control select2-supervisor', 'placeholder' => 'Pick a Supervisor...']) !!}
 </div>
 
 
@@ -101,11 +101,37 @@
             }
         });
         $(document).ready(function () {
+            // Initialize all select2 fields
             $('.select2-customer').select2({
                 placeholder: "Search for a customer...",
                 allowClear: true,
                 width: '100%'
             });
+            
+            $('.select2-driver').select2({
+                placeholder: "Search for a driver...",
+                allowClear: true,
+                width: '100%'
+            });
+            
+            $('.select2-kelindan').select2({
+                placeholder: "Search for a kelindan...",
+                allowClear: true,
+                width: '100%'
+            });
+            
+            $('.select2-agent').select2({
+                placeholder: "Search for an agent...",
+                allowClear: true,
+                width: '100%'
+            });
+            
+            $('.select2-supervisor').select2({
+                placeholder: "Search for a supervisor...",
+                allowClear: true,
+                width: '100%'
+            });
+            
             HideLoad();
         });
         $("#save_exit").click(function(){
@@ -117,34 +143,59 @@
             $('form').submit();
         });
         
-        $("#customer_id").change(function(){
-            ShowLoad();
-            var url = '{{ config("app.url") }}/invoices/customer/'+$('#customer_id').val();
-            $.get(url, function(data, status){
-                if(status == 'success'){
-                    if(data.status){
-                        $('#agent_id').val(data.data.agent_id);
-                        $('#supervisor_id').val(data.data.supervisor_id);
-                    }else{
-                        noti('e','Please contact your administrator',data.message);
-                    }
-                    HideLoad();
-                }else{
-                    noti('e','Please contact your administrator','');
-                    HideLoad();
-                }
-            });
-        });
         $('#paymentterm').change(function(){
-      
-            if($(this).val() == "5")
-            {
+            if($(this).val() == "5") {
                 $('#cheque-container').show();
-            }
-            else
-            {
+            } else {
                 $('#cheque-container').hide();
             }
         });
     </script>
+    <style>
+        /* Select2 search field styling */
+        .select2-container--default .select2-search--dropdown .select2-search__field {
+            padding: 6px 10px;
+            border: 1px solid #ced4da;
+            border-radius: 4px;
+            font-size: 14px;
+            outline: none;
+            box-shadow: none;
+        }
+
+        /* Dropdown menu styling */
+        .select2-container--default .select2-results__option--highlighted[aria-selected] {
+            background-color: #007bff;
+            color: white;
+        }
+
+        /* Selected item styling */
+        .select2-container--default .select2-selection--single {
+            height: 38px;
+            border: 1px solid #ced4da;
+            border-radius: 4px;
+        }
+
+        .select2-container--default .select2-selection--single .select2-selection__rendered {
+            line-height: 36px;
+            padding-left: 12px;
+            color: #495057;
+        }
+
+        .select2-container--default .select2-selection--single .select2-selection__arrow {
+            height: 36px;
+        }
+
+        /* Focus/hover states */
+        .select2-container--default.select2-container--focus .select2-selection--single,
+        .select2-container--default.select2-container--open .select2-selection--single {
+            border-color: #80bdff;
+            box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+        }
+
+        /* Dropdown width adjustment */
+        .select2-container {
+            width: 100% !important;
+        }
+
+    </style>
 @endpush

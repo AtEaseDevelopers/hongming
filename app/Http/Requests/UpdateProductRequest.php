@@ -26,15 +26,19 @@ class UpdateProductRequest extends FormRequest
     public function rules()
     {
         $id = $this->route('product');
-        $rules = [
-            'code' => 'required|string|max:255|unique:products,code,'.Crypt::decrypt($id),
-            'name' => 'required|string|max:255|string|max:255',
-            'price' => 'required|numeric|numeric',
-            'status' => 'required',
-            'created_at' => 'nullable|nullable',
-            'updated_at' => 'nullable|nullable'
-        ];
+        $decryptedId = Crypt::decrypt($id);
         
-        return $rules;
+        return [
+            'code' => 'required|string|max:255|unique:products,code,'.$decryptedId,
+            'name' => 'required|string|max:255',
+            'status' => 'required',
+            'type' => 'required',
+            'countdown' => 'nullable|integer|min:1|max:1440',
+            'uoms' => 'required|array|min:1',
+            'uoms.*.name' => 'required|string|max:50',
+            'uoms.*.price' => 'required|numeric|min:0',
+            'created_at' => 'nullable',
+            'updated_at' => 'nullable'
+        ];
     }
 }

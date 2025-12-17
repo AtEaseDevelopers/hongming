@@ -3,7 +3,7 @@
 @section('content')
      <ol class="breadcrumb">
             <li class="breadcrumb-item">
-                <a href="{{ route('companies.index') }}">{{ __('companies.companies')}}</a>
+                <a href="{{ route('companies.index') }}">{{ __('Branch')}}</a>
             </li>
             <li class="breadcrumb-item active">{{ __('companies.detail')}}</li>
      </ol>

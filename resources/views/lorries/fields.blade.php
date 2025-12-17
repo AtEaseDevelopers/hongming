@@ -4,12 +4,19 @@
     {!! Form::text('lorryno', null, ['class' => 'form-control','maxlength' => 255,'maxlength' => 255,'autofocus']) !!}
 </div>
 
+<!-- jpj Field -->
+<div class="form-group col-sm-6">
+    {!! Form::label('jpj_registration', __('JPJ Registration No'))!!}<span class="asterisk"> </span>
+    {!! Form::text('jpj_registration', null, ['class' => 'form-control','maxlength' => 255,'maxlength' => 255,'autofocus']) !!}
+</div>
+
 <!-- Status Field -->
 <div class="form-group col-sm-6">
 
     {!! Form::label('status', __('lorries.status'))!!}<span class="asterisk"> *</span>
     {{ Form::select('status', array(1 => 'Active', 0 => 'Unactive'), null, ['class' => 'form-control']) }}
 </div>
+
 
 <!-- Remark Field -->
 <div class="form-group col-sm-6">

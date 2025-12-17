@@ -25,6 +25,7 @@ class Trip extends Model
         'driver_id',
         'kelindan_id',
         'lorry_id',
+        'task_id',
         'cash',
         'type'
     ];
@@ -54,6 +55,7 @@ class Trip extends Model
         'driver_id' => 'required',
         'kelindan_id' => 'required',
         'lorry_id' => 'required',
+        'task_id' => 'required',
         'type' => 'required',
         'created_at' => 'nullable|nullable',
         'updated_at' => 'nullable|nullable'
@@ -79,5 +81,16 @@ class Trip extends Model
         return Carbon::parse($value)->format('d-m-Y H:i:s');
     }
 
+
+    public function isEnded()
+    {
+        // Check if there's an end trip record for this start trip
+        return Trip::where('task_id', $this->task_id)
+                ->where('driver_id', $this->driver_id)
+                ->where('lorry_id', $this->lorry_id)
+                ->where('type', 0) // End trip
+                ->where('id', '!=', $this->id) // Exclude current trip
+                ->exists();
+    }
 
 }

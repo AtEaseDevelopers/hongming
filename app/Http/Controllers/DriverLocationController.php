@@ -25,21 +25,37 @@ class DriverLocationController extends AppBaseController
 
     public function getDriverSummary()
     {
-        // [{ lat: 3.1949674484886432, lng: 101.73139214267331 }, "Boynton Pass"],
         $results = array();
-        //$DriverLocation = DB::select("select driver_location.id, driver_location.date, driver_location.latitude, driver_location.longitude, driver_location.driver_id, drivers.name as 'driver_name', drivers.employeeid as 'driver_employeeid', kelindans.name as 'kelindan_name', kelindans.employeeid as 'kelindan_employeeid', lorrys.lorryno from driver_location, drivers, kelindans, lorrys, ( select driver_id, max(id) as max_id from driver_location group by driver_id ) max_driver where driver_location.id = max_driver.max_id and drivers.id = driver_location.driver_id and lorrys.id = driver_location.lorry_id and kelindans.id = driver_location.kelindan_id;");
-        $DriverLocation = DB::select("select driver_location.id, driver_location.date, driver_location.latitude, driver_location.longitude, driver_location.driver_id, drivers.name as 'driver_name', drivers.employeeid as 'driver_employeeid', lorrys.lorryno from driver_location, drivers,  lorrys, ( select driver_id, max(id) as max_id from driver_location group by driver_id ) max_driver where driver_location.id = max_driver.max_id and drivers.id = driver_location.driver_id and lorrys.id = driver_location.lorry_id;");
+        $DriverLocation = DB::select("
+            SELECT 
+                driver_location.id, 
+                driver_location.date, 
+                driver_location.latitude, 
+                driver_location.longitude, 
+                driver_location.driver_id, 
+                drivers.name as 'driver_name', 
+                lorrys.lorryno 
+            FROM driver_location, drivers, lorrys, 
+            ( 
+                SELECT driver_id, max(id) as max_id 
+                FROM driver_location 
+                GROUP BY driver_id 
+            ) max_driver 
+            WHERE driver_location.id = max_driver.max_id 
+            AND drivers.id = driver_location.driver_id 
+            AND lorrys.id = driver_location.lorry_id
+        ");
+        
         foreach ($DriverLocation as $d){
-            $result =  array([
-                "lat" => floatval($d->latitude),
-                "lng" => floatval($d->longitude),
-            ],
-            $d->driver_name,
-            $d->driver_employeeid,
-            //$d->kelindan_employeeid,
-            //$d->kelindan_name,
-            $d->lorryno,
-            $d->date
+            $result =  array(
+                [
+                    "lat" => floatval($d->latitude),
+                    "lng" => floatval($d->longitude),
+                ],
+                $d->driver_name,
+                $d->driver_id, // Use driver_id instead of employeeid
+                $d->lorryno,
+                $d->date
             );
             array_push($results,$result);
         }

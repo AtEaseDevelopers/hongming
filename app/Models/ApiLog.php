@@ -24,8 +24,6 @@ class ApiLog extends Model
 
     protected $casts = [
         'headers' => 'array',
-        'request_body' => 'array',
-        'response_body' => 'array',
     ];
     
 }

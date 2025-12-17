@@ -27,6 +27,7 @@ use Barryvdh\DomPDF\Facade\Pdf;
 use File;
 use ZipArchive;
 use Illuminate\Support\Facades\Storage;
+use App\Models\Task;
 use App\Models\Invoice;
 use App\Models\InvoiceDetail;
 use App\Models\InvoicePayment;
@@ -36,6 +37,7 @@ use App\Models\Product;
 use App\Exports\SellerInformationExport;
 use App\Exports\MonthlySaleReport;
 use App\Exports\DailySaleReportExport;
+use App\Exports\LateDeliveryReportExport;
 use Maatwebsite\Excel\Facades\Excel;
 use Carbon\Carbon;
 
@@ -98,6 +100,7 @@ class ReportController extends AppBaseController
      */
     public function show($id)
     {
+
         $report = $this->reportRepository->find($id);
 
         if (empty($report)) {
@@ -149,8 +152,7 @@ class ReportController extends AppBaseController
                 $reportdetails[$c]['data'] = $data;
             }
             $c = $c + 1;
-        }
-
+        }   
         return view('reports.show')->with('reportdetails', $reportdetails)->with('report', $report);
     }
 
@@ -312,7 +314,24 @@ class ReportController extends AppBaseController
             }
              return redirect(route('daily_sales_report_excel').'?'.$param); 
         }
-        
+        if($sp == 'LATE_DELIVER_REPORT'){
+            $param = '';
+            foreach ($data as $key => $value) {
+                if($key != '_token' && $key != '_report_id'){
+                    if(is_array($value)){
+                        $array = '';
+                        foreach($value as $arr){
+                            $array = $array.$arr.',';
+                        }
+                        $array = rtrim($array, ",");
+                        $param = $param . $key . '=' . $array . '&';
+                    }else{
+                        $param = $param . $key . '=' . $value . '&';
+                    }
+                }
+            }
+             return redirect(route('late_delivery_report').'?'.$param); 
+        } 
         $param = '';
         foreach ($data as $key => $value) {
             if($key != '_token'){
@@ -457,6 +476,30 @@ class ReportController extends AppBaseController
         $invoiceDetails = InvoiceDetail::whereIn('invoice_id', $invoices)->orderBy('invoice_id', 'desc')->get();
         
         return Excel::download(new DailySaleReportExport($invoiceDetails,$p_driver,$date), 'DailySaleReport.xlsx');    
+    }
+
+    public function late_delivery_report(Request $request){ 
+        $dateFrom = Carbon::parse($request->datefrom)->format('Y-m-d');
+        $dateTo = Carbon::parse($request->dateto)->format('Y-m-d');
+
+        if ($dateFrom > $dateTo) {
+            // Swap the dates if they're in reverse order
+            $temp = $dateFrom;
+            $dateFrom = $dateTo;
+            $dateTo = $temp;
+        }
+        
+        $lateTasks = Task::late()
+            ->whereBetween('date', [$dateFrom, $dateTo])
+            ->with([
+                'driver',
+                'deliveryOrder.customer', 
+                'deliveryOrder.product'
+            ])
+            ->orderBy('date', 'desc')
+            ->orderBy('id', 'desc')
+            ->get();
+        return Excel::download(new LateDeliveryReportExport($lateTasks, $dateFrom, $dateTo), 'LateDeliveryReport.xlsx');    
     }
 
     public function report($id)
