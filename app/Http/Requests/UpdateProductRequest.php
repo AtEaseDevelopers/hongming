@@ -34,9 +34,9 @@ class UpdateProductRequest extends FormRequest
             'status' => 'required',
             'type' => 'required',
             'countdown' => 'nullable|integer|min:1|max:1440',
-            'uoms' => 'required|array|min:1',
-            'uoms.*.name' => 'required|string|max:50',
-            'uoms.*.price' => 'required|numeric|min:0',
+            'uoms' => 'sometimes|nullable|array',
+            'uoms.*.name' => 'required_if:type,1|string|max:50|nullable',
+            'uoms.*.price' => 'required_if:type,1|numeric|min:0|nullable',
             'created_at' => 'nullable',
             'updated_at' => 'nullable'
         ];

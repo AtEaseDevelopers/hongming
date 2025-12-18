@@ -1,4 +1,5 @@
 <!-- resources/views/products/fields.blade.php -->
+
 <!-- Code Field -->
 <div class="form-group col-sm-6">
     {!! Form::label('code', __('products.code')) !!}<span class="asterisk"> *</span>
@@ -17,7 +18,7 @@
     {{ Form::select('type', [
         0 => __('Material'),
         1 => __('Machine'),
-    ], null, ['class' => 'form-control', 'id' => 'product-type']) }}
+    ], isset($product) ? $product->type : 0, ['class' => 'form-control', 'id' => 'product-type']) }}
 </div>
 
 <!-- Countdown Field -->
@@ -33,8 +34,8 @@
     {{ Form::select('status', \App\Models\Product::$status, null, ['class' => 'form-control']) }}
 </div>
 
-<!-- UOMs Field -->
-<div class="form-group col-sm-12">
+<!-- UOMs Field - Only show for Machine type -->
+<div id="uoms-section" class="form-group col-sm-12" style="display: none;">
     <div class="card">
         <div class="card-header">
             <h5 class="mb-0">UOMs & Prices</h5>
@@ -43,8 +44,8 @@
         <div class="card-body">
             <div id="uoms-container">
                 @php
-                    $productType = isset($product) ? $product->type : 1; // Default to Machine if not set
-                    $productUoms = isset($product) && $product->uoms ? $product->uoms : [['name' => '', 'price' => ($productType == 1 ? '' : '0')]];
+                    $productType = isset($product) ? $product->type : 0; // Default to Material (0)
+                    $productUoms = isset($product) && $product->uoms ? $product->uoms : [['name' => '', 'price' => '']];
                 @endphp
                 
                 @foreach($productUoms as $index => $uom)
@@ -54,21 +55,15 @@
                             <label>UOM Name (e.g., KG, Hour, Unit)</label>
                             <input type="text" name="uoms[{{ $index }}][name]" 
                                    class="form-control uom-name" value="{{ $uom['name'] }}" 
-                                   placeholder="e.g., KG, Hour, Unit" required>
+                                   placeholder="e.g., KG, Hour, Unit">
                         </div>
                         
-                        <div class="col-sm-5 price-field-wrapper" style="{{ $productType == 0 ? 'display: none;' : '' }}">
+                        <div class="col-sm-5">
                             <label>Price (RM)</label>
                             <input type="number" name="uoms[{{ $index }}][price]" 
                                    class="form-control uom-price" step="0.01" min="0" 
-                                   value="{{ $productType == 1 ? $uom['price'] : '0' }}" 
-                                   {{ $productType == 1 ? 'required' : '' }}>
+                                   value="{{ $uom['price'] }}">
                         </div>
-                        
-                        <!-- Hidden price field for Materials (always value 0) -->
-                        @if($productType == 0)
-                        <input type="hidden" name="uoms[{{ $index }}][price]" value="0">
-                        @endif
                         
                         <div class="col-sm-2">
                             @if($index > 0)
@@ -101,7 +96,7 @@
             HideLoad();
             
             // Initialize based on current type
-            togglePriceFields($('#product-type').val());
+            toggleUomSection($('#product-type').val());
         });
         
         $(document).keyup(function(e) {
@@ -118,26 +113,26 @@
             // Handle product type change
             $('#product-type').change(function() {
                 const type = $(this).val();
-                togglePriceFields(type);
+                toggleUomSection(type);
             });
             
-            function togglePriceFields(type) {
+            function toggleUomSection(type) {
                 const isMachine = type == 1;
+                const uomSection = $('#uoms-section');
                 
                 if (isMachine) {
-                    // Show price fields for Machine
-                    $('.price-field-wrapper').show();
+                    // Show UOM section for Machine
+                    uomSection.show();
+                    // Make UOM fields required
+                    $('.uom-name').prop('required', true);
                     $('.uom-price').prop('required', true);
                     $('#uom-instruction').text('Add at least one UOM with price.');
                 } else {
-                    // Hide price fields for Material, set all to 0
-                    $('.price-field-wrapper').hide();
+                    // Hide UOM section for Material
+                    uomSection.hide();
+                    // Remove required attribute from UOM fields
+                    $('.uom-name').prop('required', false);
                     $('.uom-price').prop('required', false);
-                    $('.uom-price').val('0');
-                    $('#uom-instruction').text('Add at least one UOM (price will be set to 0 for Materials).');
-                    
-                    // Update hidden price fields to 0
-                    $('input[name*="[price]"]').not('.uom-price').val('0');
                 }
             }
             
@@ -145,10 +140,9 @@
             $('#add-uom').click(function() {
                 const productType = $('#product-type').val();
                 const isMachine = productType == 1;
-                const priceRequired = isMachine ? 'required' : '';
-                const priceValue = isMachine ? '' : '0';
-                const priceFieldStyle = isMachine ? '' : 'style="display: none;"';
-                const hiddenPriceField = isMachine ? '' : `<input type="hidden" name="uoms[${uomIndex}][price]" value="0">`;
+                
+                // Only allow adding UOMs if product type is Machine
+                if (!isMachine) return;
                 
                 const template = `
                     <div class="form-group uom-group mb-3 p-3 border rounded" data-index="${uomIndex}">
@@ -160,14 +154,12 @@
                                        placeholder="e.g., KG, Hour, Unit" required>
                             </div>
                             
-                            <div class="col-sm-5 price-field-wrapper" ${priceFieldStyle}>
+                            <div class="col-sm-5">
                                 <label>Price (RM)</label>
                                 <input type="number" name="uoms[${uomIndex}][price]" 
                                        class="form-control uom-price" step="0.01" min="0" 
-                                       value="${priceValue}" ${priceRequired}>
+                                       required>
                             </div>
-                            
-                            ${hiddenPriceField}
                             
                             <div class="col-sm-2">
                                 <button type="button" class="btn btn-danger btn-sm mt-4 remove-uom">
@@ -196,19 +188,7 @@
                 $('.uom-group').each(function(index) {
                     $(this).attr('data-index', index);
                     $(this).find('[name*="[name]"]').attr('name', `uoms[${index}][name]`);
-                    
-                    // Handle visible price fields
-                    const priceInput = $(this).find('.uom-price');
-                    if (priceInput.length) {
-                        priceInput.attr('name', `uoms[${index}][price]`);
-                    }
-                    
-                    // Handle hidden price fields
-                    const hiddenPriceInput = $(this).find('input[name*="[price]"]').not('.uom-price');
-                    if (hiddenPriceInput.length) {
-                        hiddenPriceInput.attr('name', `uoms[${index}][price]`);
-                    }
-                    
+                    $(this).find('[name*="[price]"]').attr('name', `uoms[${index}][price]`);
                     uomIndex++;
                 });
             }
@@ -217,25 +197,46 @@
             $('form').submit(function(e) {
                 ShowLoad();
                 
-                // Check for duplicate UOM names
-                let uomNames = [];
-                let hasDuplicates = false;
+                const productType = $('#product-type').val();
+                const isMachine = productType == 1;
                 
-                $('.uom-name').each(function() {
-                    const value = $(this).val().trim();
-                    if (value) {
-                        if (uomNames.includes(value.toLowerCase())) {
-                            hasDuplicates = true;
+                // Only validate UOMs if product type is Machine
+                if (isMachine) {
+                    // Check for duplicate UOM names
+                    let uomNames = [];
+                    let hasDuplicates = false;
+                    
+                    $('.uom-name').each(function() {
+                        const value = $(this).val().trim();
+                        if (value) {
+                            if (uomNames.includes(value.toLowerCase())) {
+                                hasDuplicates = true;
+                            }
+                            uomNames.push(value.toLowerCase());
                         }
-                        uomNames.push(value.toLowerCase());
+                    });
+                    
+                    if (hasDuplicates) {
+                        e.preventDefault();
+                        HideLoad();
+                        alert('Each UOM name must be unique for this product.');
+                        return false;
                     }
-                });
-                
-                if (hasDuplicates) {
-                    e.preventDefault();
-                    HideLoad();
-                    alert('Each UOM name must be unique for this product.');
-                    return false;
+                    
+                    // Check that at least one UOM is filled
+                    let hasValidUom = false;
+                    $('.uom-name').each(function() {
+                        if ($(this).val().trim()) {
+                            hasValidUom = true;
+                        }
+                    });
+                    
+                    if (!hasValidUom) {
+                        e.preventDefault();
+                        HideLoad();
+                        alert('Please add at least one UOM for Machine type products.');
+                        return false;
+                    }
                 }
             });
         });

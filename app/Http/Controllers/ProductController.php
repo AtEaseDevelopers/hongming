@@ -74,16 +74,33 @@ class ProductController extends AppBaseController
             return Redirect::back()->withInput($input)->withErrors('The name cannot contain single quote');
         }
 
-        // Validate that at least one UOM is marked as default
-        $hasDefault = false;
-        $uomNames = [];
-        if (isset($input['uoms']) && is_array($input['uoms'])) {
-            foreach ($input['uoms'] as $uom) {
-                $uomName = strtolower(trim($uom['name']));
-                if (in_array($uomName, $uomNames)) {
-                    return Redirect::back()->withInput($input)->withErrors('Each UOM name must be unique for this product.');
+        // If product type is Material, set uoms to null
+        if (isset($input['type']) && $input['type'] == 0) {
+            $input['uoms'] = null;
+            $input['default_price'] = 0;
+        } else {
+            // Validate UOMs for Machine type
+            $hasDefault = false;
+            $uomNames = [];
+            if (isset($input['uoms']) && is_array($input['uoms'])) {
+                foreach ($input['uoms'] as $uom) {
+                    if (empty($uom['name']) || empty($uom['price'])) {
+                        return Redirect::back()->withInput($input)->withErrors('All UOMs must have both name and price for Machine type products.');
+                    }
+                    
+                    $uomName = strtolower(trim($uom['name']));
+                    if (in_array($uomName, $uomNames)) {
+                        return Redirect::back()->withInput($input)->withErrors('Each UOM name must be unique for this product.');
+                    }
+                    $uomNames[] = $uomName;
                 }
-                $uomNames[] = $uomName;
+                
+                // Calculate default_price from the first UOM
+                if (count($input['uoms']) > 0) {
+                    $input['default_price'] = floatval($input['uoms'][0]['price']);
+                }
+            } else {
+                return Redirect::back()->withInput($input)->withErrors('At least one UOM is required for Machine type products.');
             }
         }
 
@@ -173,14 +190,40 @@ class ProductController extends AppBaseController
             return Redirect::back()->withInput($input)->withErrors('The name cannot contain single quote');
         }
 
-        $uomNames = [];
-        if (isset($input['uoms']) && is_array($input['uoms'])) {
-            foreach ($input['uoms'] as $uom) {
-                $uomName = strtolower(trim($uom['name']));
-                if (in_array($uomName, $uomNames)) {
-                    return Redirect::back()->withInput($input)->withErrors('Each UOM name must be unique for this product.');
+        // If product type is Material, set uoms to null
+        if (isset($input['type']) && $input['type'] == 0) {
+            $input['uoms'] = null;
+            $input['default_price'] = 0;
+        } else {
+            // Validate UOMs for Machine type
+            $uomNames = [];
+            if (isset($input['uoms']) && is_array($input['uoms'])) {
+                foreach ($input['uoms'] as $uom) {
+                    if (empty($uom['name']) || empty($uom['price'])) {
+                        return Redirect::back()->withInput($input)->withErrors('All UOMs must have both name and price for Machine type products.');
+                    }
+                    
+                    $uomName = strtolower(trim($uom['name']));
+                    if (in_array($uomName, $uomNames)) {
+                        return Redirect::back()->withInput($input)->withErrors('Each UOM name must be unique for this product.');
+                    }
+                    $uomNames[] = $uomName;
                 }
-                $uomNames[] = $uomName;
+                
+                // Calculate default_price from the first UOM
+                if (count($input['uoms']) > 0) {
+                    $input['default_price'] = floatval($input['uoms'][0]['price']);
+                }
+            } else {
+                // If updating from Material to Machine, require UOMs
+                if ($product->type == 0 && $input['type'] == 1) {
+                    return Redirect::back()->withInput($input)->withErrors('At least one UOM is required when changing to Machine type.');
+                }
+                
+                // Keep existing UOMs if they exist
+                if (empty($product->uoms)) {
+                    return Redirect::back()->withInput($input)->withErrors('At least one UOM is required for Machine type products.');
+                }
             }
         }
 
